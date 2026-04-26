@@ -39,7 +39,7 @@
                         </svg>
                     </button>
                     {% endif %}
-                    <a href="{% if user.is_authenticated %}{% url 'ticketing:dashboard' %}{% else %}/{% endif %}" class="flex items-center space-x-2 text-white text-lg font-bold tracking-tight">
+                    <a href="{% if user.is_authenticated %}{% url 'core:dashboard' %}{% else %}/{% endif %}" class="flex items-center space-x-2 text-white text-lg font-bold tracking-tight">
                         <span class="bg-blue-600 text-white rounded-lg w-8 h-8 flex items-center justify-center text-xs font-bold">TT</span>
                         <span>TikTakTuk</span>
                     </a>
@@ -50,7 +50,7 @@
                     {% if user.is_authenticated %}
                         {# ===== CUSTOMER NAV ===== #}
                         {% if user.role == 'CUSTOMER' %}
-                            <a href="{% url 'ticketing:dashboard' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Dashboard</a>
+                            <a href="{% url 'core:dashboard' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Dashboard</a>
                             <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Tiket Saya</a>
                             <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Pesanan</a>
                             <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Cari Event</a>
@@ -73,10 +73,10 @@
                                 {% endif %}">{{ user.role }}
                             </span>
                         </div>
-                        <a href="{% url 'ticketing:logout' %}" class="ml-2 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition">Logout</a>
+                        <a href="{% url 'authentication:logout' %}" class="ml-2 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition">Logout</a>
                     {% else %}
-                        <a href="{% url 'ticketing:login' %}" class="px-3 py-1.5 rounded-md text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-700 border border-gray-600 transition">Login</a>
-                        <a href="{% url 'ticketing:register_select' %}" class="px-3 py-1.5 rounded-md text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition">Registrasi</a>
+                        <a href="{% url 'authentication:login' %}" class="px-3 py-1.5 rounded-md text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-700 border border-gray-600 transition">Login</a>
+                        <a href="{% url 'authentication:register_select' %}" class="px-3 py-1.5 rounded-md text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition">Registrasi</a>
                     {% endif %}
                 </div>
 
@@ -102,7 +102,7 @@
         <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-700 max-h-[80vh] overflow-y-auto">
             <div class="px-2 pt-2 pb-3 space-y-1">
                 {% if user.is_authenticated and user.role == 'CUSTOMER' %}
-                    <a href="{% url 'ticketing:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
+                    <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
                     <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Tiket Saya</a>
                     <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
                     <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
@@ -118,12 +118,12 @@
                             <p class="text-sm font-medium text-white">{{ user.username }}</p>
                             <p class="text-xs text-gray-400">{{ user.role }}</p>
                         </div>
-                        <a href="{% url 'ticketing:logout' %}" class="px-3 py-1.5 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition">Logout</a>
+                        <a href="{% url 'authentication:logout' %}" class="px-3 py-1.5 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition">Logout</a>
                     </div>
                 {% else %}
                     <div class="space-y-2">
-                        <a href="{% url 'ticketing:login' %}" class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white border border-gray-600 transition">Login</a>
-                        <a href="{% url 'ticketing:register_select' %}" class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition">Registrasi</a>
+                        <a href="{% url 'authentication:login' %}" class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white border border-gray-600 transition">Login</a>
+                        <a href="{% url 'authentication:register_select' %}" class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition">Registrasi</a>
                     </div>
                 {% endif %}
             </div>
@@ -146,7 +146,7 @@
         </div>
         <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             {% if user.role == 'ADMIN' %}
-                <a href="{% url 'ticketing:dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Dashboard</a>
+                <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Dashboard</a>
                 <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Manajemen</p></div>
                 <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Venue</a>
                 <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Kursi</a>
@@ -160,7 +160,7 @@
                 <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Akun</p></div>
                 <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Profile</a>
             {% elif user.role == 'ORGANIZER' %}
-                <a href="{% url 'ticketing:dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Dashboard</a>
+                <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Dashboard</a>
                 <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Event Saya</a>
                 <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Manajemen</p></div>
                 <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Venue</a>

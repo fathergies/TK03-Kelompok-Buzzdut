@@ -5,15 +5,6 @@ from . import views
 app_name = 'ticketing'
 
 urlpatterns = [
-    # --- Auth URLs ---
-    path('', views.login_view, name='login'),
-    path('register/', views.register_select, name='register_select'),
-    path('register/<str:role>/', views.register_view, name='register'),
-    path('logout/', views.logout_view, name='logout'),
-
-    # --- Dashboard ---
-    path('dashboard/', views.dashboard, name='dashboard'),
-
     # --- Artist URLs ---
     path('artist/', views.show_artists, name='show_artists'),
     path('artist/add/', views.create_artist, name='create_artist'),

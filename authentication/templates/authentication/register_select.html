@@ -1,4 +1,4 @@
-{% extends "ticketing/base.html" %}
+{% extends "base.html" %}
 {% block title %}Daftar — TikTakTuk{% endblock %}
 
 {% block content %}
@@ -45,7 +45,7 @@
     <!-- Login link -->
     <p class="text-sm text-gray-500 mt-6">
         Sudah punya akun?
-        <a href="{% url 'ticketing:login' %}" class="text-blue-600 font-semibold hover:underline">Login di sini</a>
+        <a href="{% url 'authentication:login' %}" class="text-blue-600 font-semibold hover:underline">Login di sini</a>
     </p>
 </div>
 {% endblock %}

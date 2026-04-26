@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ticketing',
+    'authentication',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +64,7 @@ ROOT_URLCONF = 'basdat_tk03.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -148,4 +150,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'ticketing.CustomUser'
 
-LOGIN_URL = 'ticketing:login'
+LOGIN_URL = 'authentication:login'
