@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hapus Venue</title>
+</head>
+<body>
+    <h1>Hapus Venue</h1>
+
+    <p>Apakah kamu yakin ingin menghapus venue "{{ venue.nama_venue }}"?</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit">Ya, hapus</button>
+    </form>
+
+    <br>
+    <a href="{% url 'venue_list' %}">Batal</a>
+</body>
+</html>
