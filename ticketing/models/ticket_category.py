@@ -15,43 +15,40 @@ class Ticket_Category(models.Model):
     same Event must not exceed the capacity of the Event's Venue.
     """
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name='ticket_categories',
+    category_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    category_name = models.CharField(max_length=50)
+    quota = models.IntegerField(
+        validators=[MinValueValidator(1, message="Quota must be greater than 0.")]
     )
-    name = models.CharField(max_length=255)
     price = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         validators=[MinValueValidator(0, message="Price must be >= 0.")],
     )
-    quota = models.IntegerField(
-        validators=[MinValueValidator(1, message="Quota must be greater than 0.")]
+    tevent = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='ticket_categories',
+        db_column='tevent_id',
     )
 
     def clean(self):
         """
         Validate that the total quota of all ticket categories for this event
         does not exceed the venue capacity.
-
-        On UPDATE: excludes the current instance from the aggregate to avoid
-        double-counting its own quota.
-        On CREATE (no pk saved yet): sums all existing categories for the event.
         """
         super().clean()
 
-        if not self.event_id:
+        if not self.tevent_id:
             return  # Cannot validate without an associated event
 
-        venue_capacity = self.event.venue.capacity
+        venue_capacity = self.tevent.venue.capacity
 
         # Sum existing quotas for the same event, excluding this instance
         # (important when updating an existing Ticket_Category)
         existing_quota = (
             Ticket_Category.objects
-            .filter(event=self.event)
+            .filter(tevent=self.tevent)
             .exclude(pk=self.pk)
             .aggregate(total=models.Sum('quota'))['total']
             or 0
@@ -73,9 +70,10 @@ class Ticket_Category(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.event.title} - {self.name} (${self.price})"
+        return f"{self.tevent.title} - {self.category_name} (Rp{self.price})"
 
     class Meta:
         verbose_name = 'Ticket Category'
         verbose_name_plural = 'Ticket Categories'
-        ordering = ['event__title', 'name']
+        ordering = ['tevent__title', 'category_name']
+        db_table = 'ticket_category'

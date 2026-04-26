@@ -1,0 +1,51 @@
+{% extends "ticketing/base.html" %}
+{% block title %}Daftar — TikTakTuk{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-blue-50 flex flex-col items-center justify-center px-4 py-12">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+        <div class="mx-auto w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
+            <span class="text-white text-xl font-bold">TT</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">TikTakTuk</h1>
+        <p class="text-gray-500 mt-1">Daftar untuk Memulai</p>
+    </div>
+
+    <!-- Card -->
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
+        <h2 class="text-lg font-bold text-gray-900 mb-1">Jenis Pengguna</h2>
+        <p class="text-sm text-gray-500 mb-6">Pilih jenis akun yang sesuai dengan kebutuhan Anda</p>
+
+        <!-- Pelanggan -->
+        <a href="{% url 'ticketing:register' 'customer' %}"
+           class="block w-full border border-gray-200 rounded-xl p-5 mb-4 hover:border-blue-400 hover:shadow-md transition group">
+            <div class="flex items-start space-x-3">
+                <span class="text-2xl">👤</span>
+                <div>
+                    <h3 class="font-semibold text-gray-900 group-hover:text-blue-600 transition">Pelanggan</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">Beli dan kelola tiket untuk acara favorit Anda</p>
+                </div>
+            </div>
+        </a>
+
+        <!-- Penyelenggara -->
+        <a href="{% url 'ticketing:register' 'organizer' %}"
+           class="block w-full border border-gray-200 rounded-xl p-5 hover:border-blue-400 hover:shadow-md transition group">
+            <div class="flex items-start space-x-3">
+                <span class="text-2xl">🎪</span>
+                <div>
+                    <h3 class="font-semibold text-gray-900 group-hover:text-blue-600 transition">Penyelenggara</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">Buat dan kelola acara serta venue Anda</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Login link -->
+    <p class="text-sm text-gray-500 mt-6">
+        Sudah punya akun?
+        <a href="{% url 'ticketing:login' %}" class="text-blue-600 font-semibold hover:underline">Login di sini</a>
+    </p>
+</div>
+{% endblock %}

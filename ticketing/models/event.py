@@ -67,3 +67,4 @@ class Event(models.Model):
 
     class Meta:
         ordering = ['start_date']
+        db_table = 'event'

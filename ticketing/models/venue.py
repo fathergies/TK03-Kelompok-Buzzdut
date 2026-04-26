@@ -20,3 +20,4 @@ class Venue(models.Model):
 
     class Meta:
         ordering = ['name']
+        db_table = 'venue'
