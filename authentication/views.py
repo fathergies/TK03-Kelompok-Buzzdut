@@ -18,12 +18,13 @@ def register_view(request, role):
         return redirect('core:dashboard')
 
     role_upper = role.upper()
-    if role_upper not in ('CUSTOMER', 'ORGANIZER'):
+    if role_upper not in ('CUSTOMER', 'ORGANIZER', 'ADMIN'):
         return redirect('authentication:register_select')
 
     role_labels = {
         'CUSTOMER': 'Pelanggan',
         'ORGANIZER': 'Penyelenggara',
+        'ADMIN': 'Admin',
     }
 
     if request.method == 'POST':
