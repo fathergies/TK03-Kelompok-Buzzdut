@@ -46,20 +46,22 @@ class TicketCategoryForm(forms.ModelForm):
             'quota': 'Quota',
         }
         widgets = {
-            'tevent': forms.Select(attrs={'class': 'form-control'}),
+            'tevent': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white'
+            }),
             'category_name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g. VIP, Regular, Student',
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white',
+                'placeholder': 'cth. WVIP',
             }),
             'price': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': '0.00',
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white',
+                'placeholder': '0',
                 'min': '0',
-                'step': '0.01',
+                'step': '1',
             }),
             'quota': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Number of tickets',
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white',
+                'placeholder': '100',
                 'min': '1',
             }),
         }
@@ -68,6 +70,13 @@ class TicketCategoryForm(forms.ModelForm):
         cleaned_data = super().clean()
         event = cleaned_data.get('tevent')
         quota = cleaned_data.get('quota')
+        price = cleaned_data.get('price')
+
+        if price is not None and price < 0:
+            self.add_error('price', "Price cannot be negative.")
+
+        if quota is not None and quota <= 0:
+            self.add_error('quota', "Quota must be a positive integer.")
 
         if not event or not quota:
             return cleaned_data

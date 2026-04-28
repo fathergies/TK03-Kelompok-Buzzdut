@@ -130,8 +130,36 @@ def delete_artist(request, pk):
 def show_ticket_categories(request):
     """List all ticket categories. Accessible by everyone."""
     categories = Ticket_Category.objects.select_related('tevent', 'tevent__venue').all()
+
+    # Search by category name
+    search_query = request.GET.get('q', '')
+    if search_query:
+        categories = categories.filter(category_name__icontains=search_query)
+
+    # Filter by event
+    event_filter = request.GET.get('event', '')
+    if event_filter:
+        categories = categories.filter(tevent__id=event_filter)
+
+    # Sort
+    categories = categories.order_by('tevent__title', 'category_name')
+
+    # Stats
+    total_categories = categories.count()
+    total_quota = categories.aggregate(total=models.Sum('quota'))['total'] or 0
+    max_price = categories.aggregate(max_p=models.Max('price'))['max_p'] or 0
+
+    # Get all events for the dropdown filter
+    all_events = Event.objects.all().order_by('title')
+
     context = {
         'categories': categories,
+        'search_query': search_query,
+        'event_filter': event_filter,
+        'all_events': all_events,
+        'total_categories': total_categories,
+        'total_quota': total_quota,
+        'max_price': max_price,
         'user_role': getattr(request.user, 'role', None),
         'can_manage': _is_admin_or_organizer(request.user) if request.user.is_authenticated else False,
     }
