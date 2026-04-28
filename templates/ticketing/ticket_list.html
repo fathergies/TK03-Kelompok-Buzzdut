@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}{% if user_role == 'CUSTOMER' %}Tiket Saya{% else %}Manajemen Tiket{% endif %} - TikTakTuk{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{% if user_role == 'CUSTOMER' %}Tiket Saya{% else %}Manajemen Tiket{% endif %}</h1>
+            <p class="text-sm text-gray-500 mt-1">Daftar tiket, kategori, event, status, dan kursi yang terhubung.</p>
+        </div>
+        {% if can_create %}
+            <button onclick="openModal('createTicketModal')" class="px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition">
+                + Tambah Tiket
+            </button>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg border border-gray-100 p-5 shadow-sm">
+            <p class="text-xs font-semibold text-gray-400 uppercase">Total Tiket</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ total_tickets }}</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-5 shadow-sm">
+            <p class="text-xs font-semibold text-gray-400 uppercase">Aktif</p>
+            <p class="text-3xl font-bold text-emerald-600 mt-2">{{ active_count }}</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-5 shadow-sm">
+            <p class="text-xs font-semibold text-gray-400 uppercase">Terpakai</p>
+            <p class="text-3xl font-bold text-amber-600 mt-2">{{ used_count }}</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-5 shadow-sm">
+            <p class="text-xs font-semibold text-gray-400 uppercase">Dibatalkan</p>
+            <p class="text-3xl font-bold text-rose-600 mt-2">{{ cancelled_count }}</p>
+        </div>
+    </div>
+
+    <form method="get" class="bg-white rounded-lg border border-gray-100 p-4 shadow-sm mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_220px_auto] gap-3">
+            <input name="q" value="{{ query }}" placeholder="Cari kode tiket, event, atau kategori..."
+                   class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <select name="status" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">Semua Status</option>
+                {% for value,label in status_choices %}
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold">Filter</button>
+        </div>
+    </form>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {% for row in ticket_rows %}
+            {% with ticket=row.ticket seat=row.seat %}
+            <div class="bg-white rounded-lg border border-gray-100 shadow-sm p-5">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold text-gray-400 uppercase">Kode Tiket</p>
+                        <h2 class="text-lg font-bold text-gray-900 mt-1">{{ ticket.ticket_code }}</h2>
+                    </div>
+                    {% if ticket.status == 'ACTIVE' %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">Aktif</span>
+                    {% elif ticket.status == 'USED' %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">Terpakai</span>
+                    {% else %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700">Dibatalkan</span>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 text-sm">
+                    <div>
+                        <p class="text-gray-400 text-xs font-semibold uppercase">Event</p>
+                        <p class="font-medium text-gray-900 mt-1">{{ ticket.tcategory.tevent.title }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-xs font-semibold uppercase">Kategori</p>
+                        <p class="font-medium text-gray-900 mt-1">{{ ticket.tcategory.category_name }} - Rp {{ ticket.tcategory.price|floatformat:2 }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-xs font-semibold uppercase">Venue</p>
+                        <p class="font-medium text-gray-900 mt-1">{{ ticket.tcategory.tevent.venue.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-xs font-semibold uppercase">Kursi</p>
+                        <p class="font-medium text-gray-900 mt-1">
+                            {% if seat %}{{ seat.section }} - Baris {{ seat.row_number }}, No. {{ seat.seat_number }}{% else %}Tanpa Kursi{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-xs text-gray-400 break-all">Order ID: {{ ticket.torder_id }}</p>
+                    {% if can_manage %}
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1.5 text-xs font-semibold rounded-md bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                    onclick="openEditTicket(this)"
+                                    data-action="{% url 'ticketing:edit_ticket' ticket.pk %}"
+                                    data-code="{{ ticket.ticket_code|escapejs }}"
+                                    data-order="{{ ticket.torder_id }}"
+                                    data-category="{{ ticket.tcategory_id }}"
+                                    data-status="{{ ticket.status }}"
+                                    data-seat="{% if seat %}{{ seat.pk }}{% endif %}"
+                                    data-seat-label="{% if seat %}{{ seat.venue.name|escapejs }} - {{ seat.section|escapejs }} Baris {{ seat.row_number|escapejs }}, No. {{ seat.seat_number|escapejs }}{% endif %}">Update</button>
+                            <button class="px-3 py-1.5 text-xs font-semibold rounded-md bg-red-100 text-red-700 hover:bg-red-200"
+                                    onclick="openDeleteTicket(this)"
+                                    data-action="{% url 'ticketing:delete_ticket' ticket.pk %}"
+                                    data-label="{{ ticket.ticket_code|escapejs }}">Delete</button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endwith %}
+        {% empty %}
+            <div class="lg:col-span-2 bg-white rounded-lg border border-gray-100 p-12 text-center text-gray-400">
+                Belum ada tiket yang cocok.
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if can_create %}
+<div id="createTicketModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('createTicketModal')"></div>
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-xl mx-4 p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Tambah Tiket</h3>
+        <form method="post" action="{% url 'ticketing:create_ticket' %}" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Order ID</label>
+                <input name="torder_id" placeholder="Kosongkan untuk generate otomatis" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Kategori Tiket</label>
+                <select name="tcategory" required class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+                    {% for category in categories %}
+                        <option value="{{ category.pk }}">{{ category.tevent.title }} - {{ category.category_name }} - Rp {{ category.price|floatformat:2 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Kursi</label>
+                <select name="seat" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+                    <option value="">Tanpa Kursi</option>
+                    {% for seat in available_seats %}
+                        <option value="{{ seat.pk }}">{{ seat.venue.name }} - {{ seat.section }} Baris {{ seat.row_number }}, No. {{ seat.seat_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input name="ticket_code" placeholder="Kode tiket auto-generate" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+                <select name="status" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+                    {% for value,label in status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closeModal('createTicketModal')" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">Batal</button>
+                <button type="submit" class="px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold">Buat Tiket</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if can_manage %}
+<div id="editTicketModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('editTicketModal')"></div>
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-xl mx-4 p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Update Tiket</h3>
+        <form id="editTicketForm" method="post" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" id="editTicketCodeHidden" name="ticket_code">
+            <input type="hidden" id="editTicketOrder" name="torder_id">
+            <input type="hidden" id="editTicketCategory" name="tcategory">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Kode Tiket</label>
+                <input id="editTicketCode" disabled class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                <select id="editTicketStatus" name="status" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+                    {% for value,label in status_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Kursi</label>
+                <select id="editTicketSeat" name="seat" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm">
+                    <option value="">Tanpa Kursi</option>
+                    {% for seat in available_seats %}
+                        <option value="{{ seat.pk }}">{{ seat.venue.name }} - {{ seat.section }} Baris {{ seat.row_number }}, No. {{ seat.seat_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closeModal('editTicketModal')" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">Batal</button>
+                <button type="submit" class="px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteTicketModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('deleteTicketModal')"></div>
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+        <h3 class="text-lg font-bold text-red-600 mb-2">Hapus Tiket</h3>
+        <p class="text-sm text-gray-600 mb-6">Hapus tiket <strong id="deleteTicketLabel"></strong>? Relasi kursi akan ikut dilepas.</p>
+        <form id="deleteTicketForm" method="post">
+            {% csrf_token %}
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeModal('deleteTicketModal')" class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">Batal</button>
+                <button type="submit" class="px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold">Hapus</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function ensureSeatOption(select, value, label) {
+        if (!value) return;
+        const exists = Array.from(select.options).some(option => option.value === value);
+        if (!exists) {
+            const option = new Option(label, value);
+            select.add(option, 1);
+        }
+    }
+
+    function openEditTicket(button) {
+        const seatSelect = document.getElementById('editTicketSeat');
+        ensureSeatOption(seatSelect, button.dataset.seat, button.dataset.seatLabel);
+        document.getElementById('editTicketForm').action = button.dataset.action;
+        document.getElementById('editTicketCode').value = button.dataset.code;
+        document.getElementById('editTicketCodeHidden').value = button.dataset.code;
+        document.getElementById('editTicketOrder').value = button.dataset.order;
+        document.getElementById('editTicketCategory').value = button.dataset.category;
+        document.getElementById('editTicketStatus').value = button.dataset.status;
+        seatSelect.value = button.dataset.seat || '';
+        openModal('editTicketModal');
+    }
+
+    function openDeleteTicket(button) {
+        document.getElementById('deleteTicketForm').action = button.dataset.action;
+        document.getElementById('deleteTicketLabel').textContent = button.dataset.label;
+        openModal('deleteTicketModal');
+    }
+</script>
+{% endblock %}

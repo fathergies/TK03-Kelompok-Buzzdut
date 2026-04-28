@@ -1,11 +1,14 @@
+import uuid
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import models
+from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ArtistForm, TicketCategoryForm
-from .models import Artist, Event, Ticket_Category, Venue
+from .forms import ArtistForm, SeatForm, TicketCategoryForm, TicketForm
+from .models import Artist, Event, HasRelationship, Seat, Ticket, Ticket_Category, Venue
 
 # =============================================================================
 # Helper: Role Checks
@@ -210,3 +213,224 @@ def delete_ticket_category(request, pk):
         'user_role': request.user.role,
     }
     return render(request, 'ticketing/delete_confirm.html', context)
+
+def _generate_ticket_code():
+    return f"TKT-{uuid.uuid4().hex[:10].upper()}"
+
+
+@login_required
+def seat_list(request):
+    """List seats with availability status. Manageable by Admin and Organizer."""
+    seats = (
+        Seat.objects
+        .select_related('venue')
+        .prefetch_related('seat_ticket')
+        .order_by('venue__name', 'section', 'row_number', 'seat_number')
+    )
+    used_seat_ids = set(HasRelationship.objects.values_list('seat_id', flat=True))
+    total_seats = seats.count()
+    occupied_count = len(used_seat_ids)
+    seat_rows = [
+        {
+            'seat': seat,
+            'is_used': seat.seat_id in used_seat_ids,
+        }
+        for seat in seats
+    ]
+
+    context = {
+        'seat_rows': seat_rows,
+        'total_seats': total_seats,
+        'available_count': total_seats - occupied_count,
+        'occupied_count': occupied_count,
+        'venues': Venue.objects.all().order_by('name'),
+        'can_manage': _is_admin_or_organizer(request.user),
+        'user_role': request.user.role,
+    }
+    return render(request, "ticketing/seat_list.html", context)
+
+
+@login_required
+def create_seat(request):
+    """Create a seat. Admin and Organizer only."""
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    if request.method != 'POST':
+        return redirect('ticketing:seat_list')
+
+    form = SeatForm(request.POST)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Kursi berhasil ditambahkan.')
+    else:
+        messages.error(request, 'Kursi gagal ditambahkan. Pastikan semua field valid dan tidak duplikat.')
+    return redirect('ticketing:seat_list')
+
+
+@login_required
+def edit_seat(request, pk):
+    """Update a seat. Admin and Organizer only."""
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    seat = get_object_or_404(Seat, pk=pk)
+    if request.method != 'POST':
+        return redirect('ticketing:seat_list')
+
+    form = SeatForm(request.POST, instance=seat)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Kursi berhasil diperbarui.')
+    else:
+        messages.error(request, 'Kursi gagal diperbarui. Pastikan semua field valid dan tidak duplikat.')
+    return redirect('ticketing:seat_list')
+
+
+@login_required
+def delete_seat(request, pk):
+    """Delete an unassigned seat. Admin and Organizer only."""
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    seat = get_object_or_404(Seat, pk=pk)
+    if request.method != 'POST':
+        return redirect('ticketing:seat_list')
+
+    if HasRelationship.objects.filter(seat=seat).exists():
+        messages.error(
+            request,
+            'Kursi ini sudah di-assign ke tiket dan tidak dapat dihapus. '
+            'Hapus atau ubah tiket terlebih dahulu.'
+        )
+        return redirect('ticketing:seat_list')
+
+    seat.delete()
+    messages.success(request, 'Kursi berhasil dihapus.')
+    return redirect('ticketing:seat_list')
+
+
+@login_required
+def ticket_list(request):
+    """List tickets. Admin can update/delete; Admin and Organizer can create."""
+    tickets = (
+        Ticket.objects
+        .select_related('tcategory', 'tcategory__tevent', 'tcategory__tevent__venue')
+        .prefetch_related('seat_ticket__seat')
+        .order_by('ticket_code')
+    )
+
+    query = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '').strip()
+    if query:
+        tickets = tickets.filter(
+            Q(ticket_code__icontains=query)
+            | Q(tcategory__tevent__title__icontains=query)
+            | Q(tcategory__category_name__icontains=query)
+        )
+    if status:
+        tickets = tickets.filter(status=status)
+
+    ticket_rows = []
+    for ticket in tickets:
+        relation = ticket.seat_ticket.all()[0] if ticket.seat_ticket.all() else None
+        ticket_rows.append({
+            'ticket': ticket,
+            'seat': relation.seat if relation else None,
+        })
+
+    total_tickets = tickets.count()
+    active_count = tickets.filter(status=Ticket.StatusChoices.ACTIVE).count()
+    used_count = tickets.filter(status=Ticket.StatusChoices.USED).count()
+    cancelled_count = tickets.filter(status=Ticket.StatusChoices.CANCELLED).count()
+
+    context = {
+        'ticket_rows': ticket_rows,
+        'categories': Ticket_Category.objects.select_related('tevent', 'tevent__venue').all(),
+        'available_seats': Seat.objects.select_related('venue').exclude(
+            seat_id__in=HasRelationship.objects.values_list('seat_id', flat=True)
+        ).order_by('venue__name', 'section', 'row_number', 'seat_number'),
+        'status_choices': Ticket.StatusChoices.choices,
+        'selected_status': status,
+        'query': query,
+        'total_tickets': total_tickets,
+        'active_count': active_count,
+        'used_count': used_count,
+        'cancelled_count': cancelled_count,
+        'can_create': _is_admin_or_organizer(request.user),
+        'can_manage': _is_admin(request.user),
+        'user_role': request.user.role,
+    }
+    return render(request, "ticketing/ticket_list.html", context)
+
+
+@login_required
+def create_ticket(request):
+    """Create a ticket. Admin and Organizer only."""
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    if request.method != 'POST':
+        return redirect('ticketing:ticket_list')
+
+    data = request.POST.copy()
+    if not data.get('ticket_code'):
+        data['ticket_code'] = _generate_ticket_code()
+    if not data.get('torder_id'):
+        data['torder_id'] = str(uuid.uuid4())
+
+    form = TicketForm(data)
+    if form.is_valid():
+        ticket = form.save()
+        seat = form.cleaned_data.get('seat')
+        if seat:
+            HasRelationship.objects.create(ticket=ticket, seat=seat)
+        messages.success(request, 'Tiket berhasil dibuat.')
+    else:
+        messages.error(request, 'Tiket gagal dibuat. Pastikan order, kategori, dan kursi valid.')
+    return redirect('ticketing:ticket_list')
+
+
+@login_required
+def edit_ticket(request, pk):
+    """Update ticket status and seat. Admin only."""
+    if not _is_admin(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    ticket = get_object_or_404(Ticket, pk=pk)
+    current_relation = HasRelationship.objects.filter(ticket=ticket).select_related('seat').first()
+    current_seat = current_relation.seat if current_relation else None
+
+    if request.method != 'POST':
+        return redirect('ticketing:ticket_list')
+
+    data = request.POST.copy()
+    if not data.get('ticket_code'):
+        data['ticket_code'] = ticket.ticket_code
+    if not data.get('torder_id'):
+        data['torder_id'] = str(ticket.torder_id)
+
+    form = TicketForm(data, instance=ticket, current_seat=current_seat)
+    if form.is_valid():
+        ticket = form.save()
+        selected_seat = form.cleaned_data.get('seat')
+        HasRelationship.objects.filter(ticket=ticket).delete()
+        if selected_seat:
+            HasRelationship.objects.create(ticket=ticket, seat=selected_seat)
+        messages.success(request, 'Tiket berhasil diperbarui.')
+    else:
+        messages.error(request, 'Tiket gagal diperbarui. Pastikan data valid.')
+    return redirect('ticketing:ticket_list')
+
+
+@login_required
+def delete_ticket(request, pk):
+    """Delete a ticket and release its assigned seat. Admin only."""
+    if not _is_admin(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    ticket = get_object_or_404(Ticket, pk=pk)
+    if request.method == 'POST':
+        ticket.delete()
+        messages.success(request, 'Tiket berhasil dihapus.')
+    return redirect('ticketing:ticket_list')
