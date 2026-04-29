@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Artist, CustomUser, Event, Event_Artist, Ticket_Category, Venue
-
+from .models import (
+    Artist, CustomUser, Event, Event_Artist,
+    Ticket_Category, Venue, Seat, Ticket, HasRelationship
+)
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
@@ -44,3 +46,21 @@ class EventArtistAdmin(admin.ModelAdmin):
 class TicketCategoryAdmin(admin.ModelAdmin):
     list_display = ('tevent', 'category_name', 'price', 'quota')
     list_filter = ('tevent',)
+
+@admin.register(Seat)
+class SeatAdmin(admin.ModelAdmin):
+    list_display = ('venue', 'section', 'row_number', 'seat_number')
+    list_filter = ('venue', 'section')
+    search_fields = ('section', 'row_number', 'seat_number')
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ('ticket_code', 'tcategory', 'status', 'torder_id')
+    list_filter = ('status', 'tcategory')
+    search_fields = ('ticket_code',)
+
+
+@admin.register(HasRelationship)
+class HasRelationshipAdmin(admin.ModelAdmin):
+    list_display = ('seat', 'ticket')

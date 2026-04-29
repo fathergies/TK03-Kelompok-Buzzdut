@@ -16,4 +16,16 @@ urlpatterns = [
     path('ticket-category/add/', views.create_ticket_category, name='create_ticket_category'),
     path('ticket-category/<uuid:pk>/edit/', views.edit_ticket_category, name='edit_ticket_category'),
     path('ticket-category/<uuid:pk>/delete/', views.delete_ticket_category, name='delete_ticket_category'),
+
+    # --- Seat URLs ---
+    path('seats/', views.seat_list, name='seat_list'),
+    path('seats/add/', views.create_seat, name='create_seat'),
+    path('seats/<uuid:pk>/edit/', views.edit_seat, name='edit_seat'),
+    path('seats/<uuid:pk>/delete/', views.delete_seat, name='delete_seat'),
+
+    # --- Ticket URLs ---
+    path('my-tickets/', views.ticket_list, name='ticket_list'),
+    path('my-tickets/add/', views.create_ticket, name='create_ticket'),
+    path('my-tickets/<uuid:pk>/edit/', views.edit_ticket, name='edit_ticket'),
+    path('my-tickets/<uuid:pk>/delete/', views.delete_ticket, name='delete_ticket'),
 ]
