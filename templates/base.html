@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TikTakTuk{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        'primary-dark': '#2563eb',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .dropdown:hover .dropdown-menu { display: block; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="h-full bg-gray-50 text-gray-800">
+
+    {% if show_navbar|default:True %}
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-gray-900 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+
+                <!-- Brand & Burger -->
+                <div class="flex-shrink-0 flex items-center">
+                    {% if user.is_authenticated and user.role in 'ADMIN,ORGANIZER' %}
+                    <button id="drawer-toggle" class="mr-4 text-gray-400 hover:text-white focus:outline-none bg-gray-800 hover:bg-gray-700 p-1.5 rounded-md transition">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                    {% endif %}
+                    <a href="{% if user.is_authenticated %}{% url 'core:dashboard' %}{% else %}/{% endif %}" class="flex items-center space-x-2 text-white text-lg font-bold tracking-tight">
+                        <span class="bg-blue-600 text-white rounded-lg w-8 h-8 flex items-center justify-center text-xs font-bold">TT</span>
+                        <span>TikTakTuk</span>
+                    </a>
+                </div>
+
+                <!-- Desktop Nav Links -->
+                <div class="hidden lg:flex lg:items-center lg:space-x-0.5">
+                    {% if user.is_authenticated %}
+                        {# ===== CUSTOMER NAV ===== #}
+                        {% if user.role == 'CUSTOMER' %}
+                            <a href="{% url 'core:dashboard' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Dashboard</a>
+                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Tiket Saya</a>
+                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Pesanan</a>
+                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Cari Event</a>
+                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Promosi</a>
+                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Venue</a>
+                            <a href="{% url 'ticketing:show_artists' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Artis</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <!-- Right Side -->
+                <div class="hidden lg:flex lg:items-center lg:space-x-2">
+                    {% if user.is_authenticated %}
+                        <div class="flex items-center space-x-1.5 ml-2">
+                            <span class="text-gray-300 text-xs">{{ user.username }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold
+                                {% if user.role == 'ADMIN' %} bg-red-500/20 text-red-300
+                                {% elif user.role == 'ORGANIZER' %} bg-amber-500/20 text-amber-300
+                                {% else %} bg-indigo-500/20 text-indigo-300
+                                {% endif %}">{{ user.role }}
+                            </span>
+                        </div>
+                        <a href="{% url 'authentication:logout' %}" class="ml-2 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition">Logout</a>
+                    {% else %}
+                        <a href="{% url 'authentication:login' %}" class="px-3 py-1.5 rounded-md text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-700 border border-gray-600 transition">Login</a>
+                        <a href="{% url 'authentication:register_select' %}" class="px-3 py-1.5 rounded-md text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition">Registrasi</a>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile Hamburger (Only for Customer/Guest) -->
+                {% if not user.is_authenticated or user.role == 'CUSTOMER' %}
+                <div class="lg:hidden">
+                    <button id="mobile-menu-btn" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition">
+                        <svg id="icon-open" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                        <svg id="icon-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Mobile Menu (for Customer/Guest) -->
+        <!-- Mobile Menu (for Customer/Guest) -->
+        {% if not user.is_authenticated or user.role == 'CUSTOMER' %}
+        <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-700 max-h-[80vh] overflow-y-auto">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                {% if user.is_authenticated and user.role == 'CUSTOMER' %}
+                    <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Tiket Saya</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Promosi</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Venue</a>
+                    <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Artis</a>
+                {% endif %}
+            </div>
+            <div class="border-t border-gray-700 px-4 py-3">
+                {% if user.is_authenticated %}
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-white">{{ user.username }}</p>
+                            <p class="text-xs text-gray-400">{{ user.role }}</p>
+                        </div>
+                        <a href="{% url 'authentication:logout' %}" class="px-3 py-1.5 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition">Logout</a>
+                    </div>
+                {% else %}
+                    <div class="space-y-2">
+                        <a href="{% url 'authentication:login' %}" class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white border border-gray-600 transition">Login</a>
+                        <a href="{% url 'authentication:register_select' %}" class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition">Registrasi</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    <!-- Sidebar Drawer for Admin & Organizer -->
+    {% if user.is_authenticated and user.role in 'ADMIN,ORGANIZER' %}
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden transition-opacity opacity-0 backdrop-blur-sm"></div>
+    <div id="drawer-sidebar" class="fixed inset-y-0 left-0 w-64 bg-gray-900 border-r border-gray-700 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col shadow-2xl">
+        <div class="h-16 flex items-center justify-between px-5 border-b border-gray-800 bg-gray-900/50">
+            <span class="text-white font-bold text-lg tracking-tight">Menu Navigasi</span>
+            <button id="drawer-close" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition focus:outline-none">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            {% if user.role == 'ADMIN' %}
+                <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Dashboard</a>
+                <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Manajemen</p></div>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Venue</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Kursi</a>
+                <a href="{% url 'ticketing:show_ticket_categories' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Kategori Tiket</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Tiket</a>
+                <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Artis</a>
+                <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Order & Aset</p></div>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Semua Order</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Tiket (Aset)</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Order (Aset)</a>
+                <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Akun</p></div>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Profile</a>
+            {% elif user.role == 'ORGANIZER' %}
+                <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Dashboard</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Event Saya</a>
+                <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Manajemen</p></div>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Venue</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Kursi</a>
+                <a href="{% url 'ticketing:show_ticket_categories' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Kategori Tiket</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Tiket</a>
+                <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Artis</a>
+                <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Order & Aset</p></div>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Semua Order</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Tiket (Aset)</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Order (Aset)</a>
+                <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Akun</p></div>
+                <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Profile</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+            <div class="mb-3 px-4 py-3 rounded-lg text-sm font-medium
+                {% if message.tags == 'success' %} bg-green-100 text-green-800 border border-green-200
+                {% elif message.tags == 'error' %} bg-red-100 text-red-800 border border-red-200
+                {% elif message.tags == 'warning' %} bg-amber-100 text-amber-800 border border-amber-200
+                {% else %} bg-blue-100 text-blue-800 border border-blue-200
+                {% endif %}" role="alert">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        if (menuBtn) {
+            const mobileMenu = document.getElementById('mobile-menu');
+            const iconOpen = document.getElementById('icon-open');
+            const iconClose = document.getElementById('icon-close');
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                iconOpen.classList.toggle('hidden');
+                iconOpen.classList.toggle('block');
+                iconClose.classList.toggle('hidden');
+                iconClose.classList.toggle('block');
+            });
+        }
+
+        // Drawer Sidebar Logic
+        const drawerToggle = document.getElementById('drawer-toggle');
+        const drawerClose = document.getElementById('drawer-close');
+        const drawerSidebar = document.getElementById('drawer-sidebar');
+        const drawerOverlay = document.getElementById('drawer-overlay');
+
+        function openDrawer() {
+            if(drawerSidebar) {
+                drawerSidebar.classList.remove('-translate-x-full');
+                drawerOverlay.classList.remove('hidden');
+                setTimeout(() => drawerOverlay.classList.remove('opacity-0'), 10);
+            }
+        }
+
+        function closeDrawer() {
+            if(drawerSidebar) {
+                drawerSidebar.classList.add('-translate-x-full');
+                drawerOverlay.classList.add('opacity-0');
+                setTimeout(() => drawerOverlay.classList.add('hidden'), 300);
+            }
+        }
+
+        if (drawerToggle) drawerToggle.addEventListener('click', openDrawer);
+        if (drawerClose) drawerClose.addEventListener('click', closeDrawer);
+        if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
+        document.querySelectorAll('a.nav-link').forEach(link => {
+            if (link.href === window.location.href) {
+                link.classList.remove('text-gray-300');
+                link.classList.add('text-white', 'bg-gray-700');
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

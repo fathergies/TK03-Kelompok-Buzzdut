@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ form_title }} — TikTakTuk{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] bg-gray-50 flex flex-col items-center justify-center p-4">
+    <!-- Dimmed background simulation (since this is a separate page acting like a modal) -->
+    
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-[500px] overflow-hidden border border-gray-100">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 flex justify-between items-center border-b border-gray-100">
+            <h2 class="text-lg font-bold text-gray-900">{{ form_title }}</h2>
+            <a href="{% url 'ticketing:show_ticket_categories' %}" class="text-gray-400 hover:text-gray-600 transition p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </a>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6">
+            {% if form.non_field_errors %}
+                <div class="mb-6 p-4 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
+                    {% for error in form.non_field_errors %}
+                        <p class="mb-1 last:mb-0">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <div class="space-y-5">
+                    <!-- Acara -->
+                    <div>
+                        <label for="{{ form.tevent.id_for_label }}" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                            Acara <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.tevent }}
+                        {% if form.tevent.errors %}
+                            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.tevent.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Nama Kategori -->
+                    <div>
+                        <label for="{{ form.category_name.id_for_label }}" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                            Nama Kategori <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.category_name }}
+                        {% if form.category_name.errors %}
+                            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.category_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Harga & Kuota (2 columns) -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ form.price.id_for_label }}" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                Harga (Rp) <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.price }}
+                            {% if form.price.errors %}
+                                <p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.price.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.quota.id_for_label }}" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                Kuota <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.quota }}
+                            {% if form.quota.errors %}
+                                <p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.quota.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="mt-8 flex gap-3">
+                    <a href="{% url 'ticketing:show_ticket_categories' %}" class="flex-1 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm text-center hover:bg-gray-50 transition shadow-sm">
+                        Batal
+                    </a>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg text-sm transition shadow-sm">
+                        {{ submit_label|default:"Simpan" }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

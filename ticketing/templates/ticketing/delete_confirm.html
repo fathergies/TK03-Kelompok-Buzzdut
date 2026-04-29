@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Hapus {{ object_type }} — TikTakTuk{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] bg-gray-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100">
+        
+        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-red-50/50">
+            <h2 class="text-lg font-bold text-red-700 flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                Konfirmasi Hapus
+            </h2>
+        </div>
+
+        <div class="p-6">
+            <p class="text-sm text-gray-600 mb-6">Apakah Anda yakin ingin menghapus data {{ object_type|lower }} ini? Data yang dihapus tidak dapat dikembalikan.</p>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-8 border border-gray-100">
+                <dl class="space-y-3">
+                    {% if object_type == 'Ticket Category' %}
+                    <div>
+                        <dt class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Category ID</dt>
+                        <dd class="text-sm font-medium text-gray-900 mt-0.5 break-all">{{ object.id }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Category Name</dt>
+                        <dd class="text-sm font-medium text-gray-900 mt-0.5">{{ object.category_name }} ({{ object.tevent.title }})</dd>
+                    </div>
+                    {% else %}
+                    <div>
+                        <dt class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Data</dt>
+                        <dd class="text-sm font-medium text-gray-900 mt-0.5">{{ object }}</dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex gap-3">
+                    <a href="{% url cancel_url %}" class="flex-1 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm text-center hover:bg-gray-50 transition shadow-sm">
+                        Cancel
+                    </a>
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition shadow-sm">
+                        Confirm Deletion
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
