@@ -246,6 +246,34 @@ def _generate_ticket_code():
     return f"TKT-{uuid.uuid4().hex[:10].upper()}"
 
 
+def _dummy_customer_name(seed):
+    names = ['Budi Santoso', 'Siti Rahayu', 'Dina Pratiwi', 'Raka Wijaya']
+    try:
+        index = uuid.UUID(str(seed)).int % len(names)
+    except ValueError:
+        index = sum(ord(char) for char in str(seed)) % len(names)
+    return names[index]
+
+
+def _dummy_order_id_for_event(event_id):
+    return uuid.uuid5(uuid.NAMESPACE_URL, f'tiktaktuk-order-{event_id}')
+
+
+def _build_dummy_orders(events):
+    orders = []
+    for index, event in enumerate(events, start=1):
+        order_id = _dummy_order_id_for_event(event.id)
+        is_reserved = index % 2 == 1
+        orders.append({
+            'id': order_id,
+            'code': f'ord_{index:03d}',
+            'customer': _dummy_customer_name(order_id),
+            'event': event,
+            'is_reserved': is_reserved,
+        })
+    return orders
+
+
 @login_required
 def seat_list(request):
     """List seats with availability status. Manageable by Admin and Organizer."""
@@ -362,19 +390,38 @@ def ticket_list(request):
     ticket_rows = []
     for ticket in tickets:
         relation = ticket.seat_ticket.all()[0] if ticket.seat_ticket.all() else None
+        order_code = f"ord_{str(ticket.torder_id).split('-')[0]}"
         ticket_rows.append({
             'ticket': ticket,
             'seat': relation.seat if relation else None,
+            'customer_name': _dummy_customer_name(ticket.torder_id),
+            'order_code': order_code,
         })
 
     total_tickets = tickets.count()
     active_count = tickets.filter(status=Ticket.StatusChoices.ACTIVE).count()
     used_count = tickets.filter(status=Ticket.StatusChoices.USED).count()
     cancelled_count = tickets.filter(status=Ticket.StatusChoices.CANCELLED).count()
+    all_events = Event.objects.select_related('venue').order_by('title')
+    categories = (
+        Ticket_Category.objects
+        .select_related('tevent', 'tevent__venue')
+        .annotate(used_count=models.Count('tickets'))
+        .order_by('tevent__title', 'category_name')
+    )
+    category_rows = [
+        {
+            'category': category,
+            'is_full': category.used_count >= category.quota,
+            'remaining': max(category.quota - category.used_count, 0),
+        }
+        for category in categories
+    ]
 
     context = {
         'ticket_rows': ticket_rows,
-        'categories': Ticket_Category.objects.select_related('tevent', 'tevent__venue').all(),
+        'dummy_orders': _build_dummy_orders(all_events),
+        'category_rows': category_rows,
         'available_seats': Seat.objects.select_related('venue').exclude(
             seat_id__in=HasRelationship.objects.values_list('seat_id', flat=True)
         ).order_by('venue__name', 'section', 'row_number', 'seat_number'),

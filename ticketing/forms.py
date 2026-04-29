@@ -197,3 +197,36 @@ class TicketForm(forms.ModelForm):
         self.fields['seat'].queryset = seat_queryset.distinct().order_by(
             'venue__name', 'section', 'row_number', 'seat_number'
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        category = cleaned_data.get('tcategory')
+        seat = cleaned_data.get('seat')
+
+        if not category:
+            return cleaned_data
+
+        used_quota = (
+            Ticket.objects
+            .filter(tcategory=category)
+            .exclude(pk=self.instance.pk)
+            .count()
+        )
+        if used_quota >= category.quota:
+            raise forms.ValidationError(
+                f'Kuota kategori {category.category_name} sudah penuh.'
+            )
+
+        if seat:
+            occupied = HasRelationship.objects.filter(seat=seat)
+            if self.instance.pk:
+                occupied = occupied.exclude(ticket=self.instance)
+            if occupied.exists():
+                raise forms.ValidationError('Kursi ini sudah di-assign ke tiket lain.')
+
+            if seat.venue_id != category.tevent.venue_id:
+                raise forms.ValidationError(
+                    'Kursi harus berasal dari venue yang sama dengan event kategori tiket.'
+                )
+
+        return cleaned_data
