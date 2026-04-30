@@ -103,9 +103,9 @@
                 {% if user.is_authenticated and user.role == 'CUSTOMER' %}
                     <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
                     <a href="{% url 'ticketing:ticket_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Tiket Saya</a>
-                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
+                    <a href="{% url 'orders:order_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
                     <a href="{% url 'events:event_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
-                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700" onclick="alert('Fitur promosi masih dalam pengembangan!'); return false;">Promosi</a>
+                    <a href="{% url 'promotions:promotion_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Promosi</a>
                     <a href="{% url 'venue_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Venue</a>
                     <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Artis</a>
                 {% endif %}
