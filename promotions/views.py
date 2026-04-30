@@ -1,112 +1,96 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db.models import Count
-from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Sum, Count
+from django.shortcuts import render, redirect, get_object_or_404
 
-from .forms import PromotionForm
 from .models import Promotion
+from .forms import PromotionForm
 
 
-def _is_admin(user):
-    return user.is_authenticated and user.role == 'ADMIN'
+def is_admin(user):
+    return user.is_authenticated and user.is_staff
 
 
 def promotion_list(request):
-    """List all promotions. Accessible by everyone (including guests)."""
-    promotions = Promotion.objects.annotate(current_usage=Count('order_promotions'))
+    promotions = Promotion.objects.all()
 
-    search = request.GET.get('search', '')
-    if search:
-        promotions = promotions.filter(promo_code__icontains=search)
+    search_query = request.GET.get("q", "")
+    discount_type = request.GET.get("discount_type", "")
 
-    promo_type = request.GET.get('type', '')
-    if promo_type == 'PERCENTAGE':
-        promotions = promotions.filter(discount_type=Promotion.DISCOUNT_PERCENTAGE)
-    elif promo_type == 'NOMINAL':
-        promotions = promotions.filter(discount_type=Promotion.DISCOUNT_NOMINAL)
+    if search_query:
+        promotions = promotions.filter(promo_code__icontains=search_query)
 
-    promotions = promotions.order_by("-start_date")
+    if discount_type in ["percentage", "nominal"]:
+        promotions = promotions.filter(discount_type=discount_type)
 
-    # Stats computed from the full queryset (before search/filter for accuracy? Per spec: total of all)
-    all_promos = Promotion.objects.annotate(current_usage=Count('order_promotions'))
-    total_promo = all_promos.count()
-    total_usage = sum(p.current_usage for p in all_promos)
-    total_persentase = all_promos.filter(discount_type=Promotion.DISCOUNT_PERCENTAGE).count()
+    all_promotions = Promotion.objects.all()
+
+    total_promo = all_promotions.count()
+    total_usage = all_promotions.aggregate(total=Sum("used_count"))["total"] or 0
+    total_percentage = all_promotions.filter(discount_type="percentage").count()
 
     context = {
-        "promos": promotions,
-        "search": search,
-        "promo_type": promo_type,
-        "stats": {
-            "total_promo": total_promo,
-            "total_usage": total_usage,
-            "total_persentase": total_persentase,
-        },
-        "can_manage": _is_admin(request.user),
+        "promotions": promotions,
+        "search_query": search_query,
+        "discount_type": discount_type,
+        "total_promo": total_promo,
+        "total_usage": total_usage,
+        "total_percentage": total_percentage,
     }
+
     return render(request, "promotions/promotion_list.html", context)
 
 
 @login_required
+@user_passes_test(is_admin)
 def promotion_create(request):
-    if not _is_admin(request.user):
-        return HttpResponseForbidden("Hanya Admin yang dapat membuat promosi.")
-
-    if request.method == 'POST':
+    if request.method == "POST":
         form = PromotionForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Promosi berhasil dibuat!')
-            return redirect('promotions:list')
-        else:
-            messages.error(request, 'Mohon perbaiki kesalahan pada form.')
+            messages.success(request, "Promo berhasil dibuat.")
+            return redirect("promotions:promotion_list")
     else:
         form = PromotionForm()
 
-    return render(request, 'promotions/promotion_form.html', {
-        'form': form,
-        'title': 'Buat Promo Baru',
-        'button_text': 'Buat',
+    return render(request, "promotions/promotion_form.html", {
+        "form": form,
+        "title": "Buat Promo",
+        "button_text": "Simpan",
     })
 
 
 @login_required
-def promotion_update(request, promotion_id):
-    promotion = get_object_or_404(Promotion, promotion_id=promotion_id)
+@user_passes_test(is_admin)
+def promotion_update(request, pk):
+    promotion = get_object_or_404(Promotion, pk=pk)
 
-    if not _is_admin(request.user):
-        return HttpResponseForbidden("Hanya Admin yang dapat mengubah promosi.")
-
-    if request.method == 'POST':
+    if request.method == "POST":
         form = PromotionForm(request.POST, instance=promotion)
         if form.is_valid():
             form.save()
-            messages.success(request, f'Promosi "{promotion.promo_code}" berhasil diperbarui!')
-            return redirect('promotions:list')
-        else:
-            messages.error(request, 'Mohon perbaiki kesalahan pada form.')
+            messages.success(request, "Promo berhasil diperbarui.")
+            return redirect("promotions:promotion_list")
     else:
         form = PromotionForm(instance=promotion)
 
-    return render(request, 'promotions/promotion_form.html', {
-        'form': form,
-        'title': 'Edit Promo',
-        'button_text': 'Simpan',
+    return render(request, "promotions/promotion_form.html", {
+        "form": form,
+        "title": "Update Promo",
+        "button_text": "Update",
     })
 
 
 @login_required
-def promotion_delete(request, promotion_id):
-    promotion = get_object_or_404(Promotion, promotion_id=promotion_id)
+@user_passes_test(is_admin)
+def promotion_delete(request, pk):
+    promotion = get_object_or_404(Promotion, pk=pk)
 
-    if not _is_admin(request.user):
-        return HttpResponseForbidden("Hanya Admin yang dapat menghapus promosi.")
-
-    if request.method == 'POST':
-        code = promotion.promo_code
+    if request.method == "POST":
         promotion.delete()
-        messages.success(request, f'Promosi "{code}" berhasil dihapus.')
-        return redirect('promotions:list')
+        messages.success(request, "Promo berhasil dihapus.")
+        return redirect("promotions:promotion_list")
 
-    return render(request, 'promotions/promotion_delete.html', {'promotion': promotion})
+    return render(request, "promotions/promotion_confirm_delete.html", {
+        "promotion": promotion
+    })

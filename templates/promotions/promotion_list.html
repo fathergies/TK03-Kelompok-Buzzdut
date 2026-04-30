@@ -1,44 +1,136 @@
 {% extends "base.html" %}
 
-{% block title %}Promosi{% endblock %}
+{% block title %}Manajemen Promosi{% endblock %}
 
 {% block content %}
-<section class="page-section">
-  <div class="page-header">
-    <h1>Promosi</h1>
-    <p>Gunakan promo aktif untuk mendapatkan diskon tiket.</p>
-  </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
 
-  {% if promotions %}
-    <div class="card-grid">
-      {% for promotion in promotions %}
-        <a href="{% url 'promotions:detail' promotion.promotion_id %}" class="card-link">
-          <div class="card">
-            <div class="card-header">
-              <h3>{{ promotion.promo_code }}</h3>
-              <span class="badge">Aktif</span>
-            </div>
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Manajemen Promosi</h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Kelola kode promo dan kampanye diskon
+            </p>
+        </div>
 
-            <p class="muted">{{ promotion.discount_type }}</p>
-
-            <h2>
-              {% if promotion.discount_type == "PERCENTAGE" %}
-                {{ promotion.discount_value }}%
-              {% else %}
-                Rp{{ promotion.discount_value }}
-              {% endif %}
-            </h2>
-
-            <p>Berlaku sampai {{ promotion.end_date|date:"d M Y" }}</p>
-          </div>
+        {% if user.is_authenticated and user.is_staff %}
+        <a href="{% url 'promotions:promotion_create' %}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow">
+            + Buat Promo
         </a>
-      {% endfor %}
+        {% endif %}
     </div>
-  {% else %}
-    <div class="empty-state">
-      <h2>Belum ada promosi aktif</h2>
-      <p>Cek lagi nanti untuk promo terbaru.</p>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white p-6 rounded-xl shadow">
+            <p class="text-xs text-gray-400 font-semibold uppercase">Total Promo</p>
+            <p class="text-2xl font-bold mt-2">{{ total_promo }}</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <p class="text-xs text-gray-400 font-semibold uppercase">Total Penggunaan</p>
+            <p class="text-2xl font-bold mt-2">{{ total_usage }}x</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <p class="text-xs text-gray-400 font-semibold uppercase">Tipe Persentase</p>
+            <p class="text-2xl font-bold mt-2">{{ total_percentage }}</p>
+        </div>
     </div>
-  {% endif %}
-</section>
+
+    <!-- Filter -->
+    <form method="get" class="flex gap-3 mb-6">
+        <input type="text" name="q"
+               placeholder="Cari kode promo..."
+               value="{{ search_query }}"
+               class="w-80 px-4 py-2 border rounded-lg">
+
+        <select name="discount_type"
+                class="px-4 py-2 border rounded-lg"
+                onchange="this.form.submit()">
+            <option value="">Semua Tipe</option>
+            <option value="percentage" {% if discount_type == "percentage" %}selected{% endif %}>
+                Persentase
+            </option>
+            <option value="nominal" {% if discount_type == "nominal" %}selected{% endif %}>
+                Nominal
+            </option>
+        </select>
+    </form>
+
+    <!-- Table -->
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50 text-gray-400 text-xs uppercase">
+                <tr>
+                    <th class="px-6 py-4 text-left">Kode Promo</th>
+                    <th class="px-6 py-4 text-left">Tipe</th>
+                    <th class="px-6 py-4 text-left">Nilai Diskon</th>
+                    <th class="px-6 py-4 text-left">Mulai</th>
+                    <th class="px-6 py-4 text-left">Berakhir</th>
+                    <th class="px-6 py-4 text-left">Penggunaan</th>
+
+                    {% if user.is_authenticated and user.is_staff %}
+                    <th class="px-6 py-4"></th>
+                    {% endif %}
+                </tr>
+            </thead>
+
+            <tbody class="text-sm text-gray-700">
+            {% for promo in promotions %}
+                <tr class="border-t">
+                    <td class="px-6 py-4 font-semibold">
+                        🎟 {{ promo.promo_code }}
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs font-bold rounded
+                            {% if promo.discount_type == 'percentage' %}
+                                bg-purple-100 text-purple-600
+                            {% else %}
+                                bg-orange-100 text-orange-600
+                            {% endif %}">
+                            {{ promo.get_discount_type_display }}
+                        </span>
+                    </td>
+
+                    <td class="px-6 py-4 font-semibold">
+                        {% if promo.discount_type == "percentage" %}
+                            {{ promo.discount_value }}%
+                        {% else %}
+                            Rp {{ promo.discount_value }}
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4">{{ promo.start_date }}</td>
+                    <td class="px-6 py-4">{{ promo.end_date }}</td>
+
+                    <td class="px-6 py-4 font-semibold">
+                        {{ promo.used_count }} / {{ promo.usage_limit }}
+                    </td>
+
+                    {% if user.is_authenticated and user.is_staff %}
+                    <td class="px-6 py-4 space-x-2">
+                        <a href="{% url 'promotions:promotion_update' promo.pk %}"
+                           class="text-yellow-500 font-bold">✎</a>
+
+                        <a href="{% url 'promotions:promotion_delete' promo.pk %}"
+                           class="text-red-500 font-bold">🗑</a>
+                    </td>
+                    {% endif %}
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-6 text-gray-400">
+                        Belum ada data promosi
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
 {% endblock %}

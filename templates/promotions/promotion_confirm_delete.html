@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hapus Promo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 24px;
+        }
+
+        .modal {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 420px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal">
+        <h1>Hapus Promo</h1>
+
+        <p>
+            Apakah Anda yakin ingin menghapus kode promo
+            <strong>{{ promotion.promo_code }}</strong>?
+        </p>
+
+        <p>Tindakan ini tidak dapat dibatalkan.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <a class="btn btn-secondary" href="{% url 'promotions:promotion_list' %}">
+                Batal
+            </a>
+
+            <button class="btn btn-danger" type="submit">
+                Hapus
+            </button>
+        </form>
+    </div>
+
+</body>
+</html>

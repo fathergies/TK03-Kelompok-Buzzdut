@@ -5,7 +5,7 @@ app_name = "promotions"
 
 urlpatterns = [
     path("", views.promotion_list, name="list"),
-    path("create/", views.promotion_create, name="create"),
-    path("<uuid:promotion_id>/update/", views.promotion_update, name="update"),
-    path("<uuid:promotion_id>/delete/", views.promotion_delete, name="delete"),
+    path("create/", views.promotion_create, name="promotion_create"),
+    path("<int:pk>/update/", views.promotion_update, name="promotion_update"),
+    path("<int:pk>/delete/", views.promotion_delete, name="promotion_delete"),
 ]
