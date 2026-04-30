@@ -34,11 +34,11 @@
     <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
         <h3 class="font-semibold text-gray-900 mb-4">Akses Cepat</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <a href="#" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
+            <a href="{% url 'events:event_list' %}" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
                 <span class="text-2xl mb-2">🔍</span>
                 <span class="text-sm font-medium text-gray-700">Cari Event</span>
             </a>
-            <a href="#" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
+            <a href="{% url 'ticketing:ticket_list' %}" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
                 <span class="text-2xl mb-2">🎟️</span>
                 <span class="text-sm font-medium text-gray-700">Tiket Saya</span>
             </a>
@@ -46,7 +46,7 @@
                 <span class="text-2xl mb-2">🎤</span>
                 <span class="text-sm font-medium text-gray-700">Artis</span>
             </a>
-            <a href="#" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
+            <a href="#" onclick="alert('Fitur promosi masih dalam pengembangan!'); return false;" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
                 <span class="text-2xl mb-2">🎁</span>
                 <span class="text-sm font-medium text-gray-700">Promosi</span>
             </a>

@@ -1,6 +1,7 @@
-{% extends 'venue/base_venue.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
+<div class="max-w-6xl mx-auto px-6 py-10">
 <div class="flex justify-between items-start mb-7">
     <div>
         <h1 class="text-4xl font-extrabold text-slate-900 mb-2">Manajemen Venue</h1>
@@ -8,8 +9,8 @@
     </div>
 
     {% if is_admin_or_organizer %}
-    <button onclick="openModal('createVenueModal')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-6 py-3 rounded-xl shadow-sm">
-        + Tambah Venue
+    <button onclick="openModal('createVenueModal')" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition">
+        <span class="text-lg leading-none">+</span> Tambah Venue
     </button>
     {% endif %}
 </div>
@@ -237,4 +238,17 @@
         </form>
     </div>
 </div>
+</div>
+
+<script>
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.getElementById(id).classList.add('flex');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+    }
+</script>
 {% endblock %}

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'authentication',
     'core',
     'venue',
+    'events',
 ]
 
 MIDDLEWARE = [
