@@ -1,32 +1,28 @@
 {% extends 'base.html' %}
 {% block content %}
-
-<div class="max-w-md mx-auto bg-white p-6 rounded shadow text-center">
-
-    <h3 class="text-lg font-bold text-red-600 mb-4">
-        Hapus Order
-    </h3>
-
-    <p class="mb-4">
-        Apakah Anda yakin ingin menghapus order ini?
-        <br>
-        <span class="text-gray-500 text-sm">
-            Tindakan ini tidak dapat dibatalkan
-        </span>
-    </p>
-
-    <form method="post">
-        {% csrf_token %}
-        <div class="flex justify-center gap-2">
-            <a href="{% url 'orders:list' %}" 
-               class="px-4 py-2 bg-gray-200 rounded">Batal</a>
-
-            <button class="px-4 py-2 bg-red-600 text-white rounded">
-                Hapus
-            </button>
+<div class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[400px] overflow-hidden">
+        <!-- Header -->
+        <div class="px-6 py-5 flex justify-between items-center border-b border-gray-100">
+            <h2 class="text-xl font-bold text-red-600">Hapus Order</h2>
+            <a href="{% url 'orders:list' %}" class="text-gray-400 hover:text-gray-600 transition p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </a>
         </div>
-    </form>
 
+        <!-- Body -->
+        <div class="p-6">
+            <p class="text-gray-600 text-sm mb-1">Apakah Anda yakin ingin menghapus catatan order ini?</p>
+            <p class="text-gray-500 text-xs mb-8">Tindakan ini tidak dapat dibatalkan.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex gap-3 mt-4 justify-end">
+                    <a href="{% url 'orders:list' %}" class="px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition">Batal</a>
+                    <button type="submit" class="px-6 py-2.5 bg-red-600 hover:bg-red-700 rounded-xl text-sm font-bold text-white shadow-md shadow-red-500/20 transition">Hapus</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
-
 {% endblock %}

@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} — TikTakTuk{% endblock %}
+
+{% block content %}
+<!-- Full-page overlay background -->
+<div class="fixed inset-0 bg-black/30 z-40 flex items-center justify-center p-4 backdrop-blur-sm">
+    <!-- Modal Card -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-50 overflow-hidden">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center px-6 pt-6 pb-4">
+            <h2 class="text-xl font-bold text-gray-900">{{ title }}</h2>
+            <a href="{% url 'promotions:list' %}"
+               class="text-gray-400 hover:text-gray-600 transition p-1 rounded-md hover:bg-gray-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </a>
+        </div>
+
+        <!-- Form -->
+        <form method="POST" class="px-6 pb-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="space-y-4">
+
+                <!-- Kode Promo -->
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                        KODE PROMO
+                    </label>
+                    <input type="text" name="promo_code"
+                           value="{{ form.promo_code.value|default:'' }}"
+                           placeholder="CTH. TIKTAK20"
+                           class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase">
+                    {% if form.promo_code.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.promo_code.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Tipe Diskon -->
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                        TIPE DISKON
+                    </label>
+                    <div class="relative">
+                        <select name="discount_type"
+                                class="w-full appearance-none border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white pr-10">
+                            <option value="">-- Pilih Tipe --</option>
+                            <option value="PERCENTAGE" {% if form.discount_type.value == 'PERCENTAGE' %}selected{% endif %}>Persentase (%)</option>
+                            <option value="NOMINAL" {% if form.discount_type.value == 'NOMINAL' %}selected{% endif %}>Nominal (Rp)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                    </div>
+                    {% if form.discount_type.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.discount_type.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Nilai Diskon -->
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                        NILAI DISKON
+                    </label>
+                    <input type="number" name="discount_value"
+                           value="{{ form.discount_value.value|default:'' }}"
+                           placeholder="cth. 20"
+                           min="0" step="any"
+                           class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    {% if form.discount_value.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.discount_value.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Tanggal Mulai & Berakhir (2 columns) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                            TANGGAL MULAI
+                        </label>
+                        <input type="date" name="start_date"
+                               value="{{ form.start_date.value|default:'' }}"
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        {% if form.start_date.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.start_date.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                            TANGGAL BERAKHIR
+                        </label>
+                        <input type="date" name="end_date"
+                               value="{{ form.end_date.value|default:'' }}"
+                               class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        {% if form.end_date.errors %}
+                        <p class="mt-1 text-xs text-red-600">{{ form.end_date.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Batas Penggunaan -->
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                        BATAS PENGGUNAAN
+                    </label>
+                    <input type="number" name="usage_limit"
+                           value="{{ form.usage_limit.value|default:'1' }}"
+                           placeholder="1"
+                           min="1"
+                           class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    {% if form.usage_limit.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.usage_limit.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 mt-8">
+                <a href="{% url 'promotions:list' %}"
+                   class="flex-1 text-center py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                    Batal
+                </a>
+                <button type="submit"
+                        class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition shadow-sm">
+                    {{ button_text }}
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

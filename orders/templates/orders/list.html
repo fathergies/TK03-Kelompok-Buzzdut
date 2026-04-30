@@ -1,83 +1,115 @@
 {% extends 'base.html' %}
 {% block content %}
-
-<h2 class="text-2xl font-bold mb-6">Daftar Order</h2>
-
-<!-- STATS -->
-<div class="grid grid-cols-4 gap-4 mb-6">
-    <div class="bg-white p-4 rounded shadow">
-        <p class="text-gray-500">TOTAL ORDER</p>
-        <p class="text-xl font-bold">{{ total_orders }}</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Daftar Order</h1>
+            <p class="text-gray-500">{% if is_customer %}Riwayat pembelian tiket Anda{% else %}Order dari event yang Anda selenggarakan{% endif %}</p>
+        </div>
     </div>
 
-    <div class="bg-white p-4 rounded shadow">
-        <p class="text-gray-500">LUNAS</p>
-        <p class="text-xl font-bold text-green-600">{{ paid }}</p>
+    <!-- STATS -->
+    <div class="grid grid-cols-1 md:grid-cols-{% if is_customer %}3{% else %}4{% endif %} gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <p class="text-xs font-bold text-gray-400 uppercase">Total Order</p>
+            <p class="text-3xl font-bold mt-1">{{ total_orders }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <p class="text-xs font-bold text-gray-400 uppercase">Lunas</p>
+            <p class="text-3xl font-bold mt-1">{{ paid }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <p class="text-xs font-bold text-gray-400 uppercase">Pending</p>
+            <p class="text-3xl font-bold mt-1">{{ pending }}</p>
+        </div>
+        {% if not is_customer %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <p class="text-xs font-bold text-gray-400 uppercase">Total Revenue</p>
+            <p class="text-3xl font-bold mt-1">Rp {{ total_revenue }}</p>
+        </div>
+        {% endif %}
     </div>
 
-    <div class="bg-white p-4 rounded shadow">
-        <p class="text-gray-500">PENDING</p>
-        <p class="text-xl font-bold text-yellow-500">{{ pending }}</p>
-    </div>
-
-    <div class="bg-white p-4 rounded shadow">
-        <p class="text-gray-500">TOTAL REVENUE</p>
-        <p class="text-xl font-bold">
-            Rp {{ total_revenue }}
-        </p>
-    </div>
-</div>
-
-<!-- TABLE -->
-<div class="bg-white rounded shadow p-4">
-
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="border-b text-gray-500">
-                <th class="text-left py-2">Order ID</th>
-                <th class="text-left">Pelanggan</th>
-                <th class="text-left">Tanggal</th>
-                <th class="text-left">Status</th>
-                <th class="text-left">Total</th>
-                {% if user.is_staff %}
-                <th>Aksi</th>
-                {% endif %}
-            </tr>
-        </thead>
-
-        <tbody>
-            {% for o in orders %}
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-2">{{ o.id }}</td>
-                <td>{{ o.customer.username }}</td>
-                <td>{{ o.order_date|date:"Y-m-d H:i" }}</td>
-
-                <td>
-                    {% if o.payment_status == 'PAID' %}
-                        <span class="bg-green-100 text-green-600 px-2 py-1 rounded">LUNAS</span>
-                    {% elif o.payment_status == 'PENDING' %}
-                        <span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded">PENDING</span>
-                    {% else %}
-                        <span class="bg-red-100 text-red-600 px-2 py-1 rounded">DIBATALKAN</span>
+    <!-- TABLE -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b flex flex-col md:flex-row gap-4 justify-between bg-gray-50/50">
+            <form method="GET" class="flex gap-2 w-full md:w-auto">
+                <input type="text" name="search" placeholder="{% if is_customer %}Cari order ID...{% else %}Cari ID atau pelanggan...{% endif %}" class="border rounded-lg px-4 py-2 text-sm w-full md:w-64">
+                <select name="status" onchange="this.form.submit()" class="border rounded-lg px-4 py-2 text-sm">
+                    <option value="">Semua Status</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="PAID">Lunas</option>
+                    <option value="CANCELLED">Dibatalkan</option>
+                </select>
+            </form>
+        </div>
+        
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 text-gray-400 text-xs uppercase font-semibold">
+                <tr>
+                    <th class="px-6 py-4">Order ID</th>
+                    {% if not is_customer %}
+                    <th class="px-6 py-4">Pelanggan</th>
                     {% endif %}
-                </td>
+                    <th class="px-6 py-4">Tanggal</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">Total</th>
+                    {% if is_admin %}
+                    <th class="px-6 py-4">Aksi</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for o in orders %}
+                <tr class="text-sm text-gray-700 hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 font-bold text-gray-400">{{ o.id|stringformat:"s"|slice:":8" }}</td>
+                    
+                    {% if not is_customer %}
+                    <td class="px-6 py-4 font-bold flex items-center gap-2">
+                        <div class="bg-gray-100 text-gray-500 rounded-full w-6 h-6 flex items-center justify-center text-[10px]">
+                            {{ o.customer.username|slice:":1"|upper }}
+                        </div>
+                        {{ o.customer.username }}
+                    </td>
+                    {% endif %}
+                    
+                    <td class="px-6 py-4 text-gray-500">{{ o.order_date|date:"Y-m-d H:i" }}</td>
+                    
+                    <td class="px-6 py-4">
+                        {% if o.payment_status == 'PAID' %}
+                            <span class="bg-green-50 text-green-600 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1 w-max">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                LUNAS
+                            </span>
+                        {% elif o.payment_status == 'PENDING' %}
+                            <span class="bg-orange-50 text-orange-500 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1 w-max">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                PENDING
+                            </span>
+                        {% else %}
+                            <span class="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1 w-max">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                DIBATALKAN
+                            </span>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="px-6 py-4 font-bold">Rp {{ o.total_amount }}</td>
 
-                <td>Rp {{ o.total_amount }}</td>
-
-                {% if user.is_staff %}
-                <td class="space-x-2">
-                    <a href="{% url 'orders:update' o.id %}" 
-                       class="text-blue-500">✏️</a>
-
-                    <a href="{% url 'orders:delete' o.id %}" 
-                       class="text-red-500">🗑️</a>
-                </td>
-                {% endif %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
+                    {% if is_admin %}
+                    <td class="px-6 py-4 flex gap-3">
+                        <a href="{% url 'orders:update' o.id %}" class="text-gray-400 hover:text-blue-600 p-1 border border-gray-200 rounded-md bg-white shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </a>
+                        <a href="{% url 'orders:delete' o.id %}" class="text-gray-400 hover:text-red-600 p-1 border border-gray-200 rounded-md bg-white shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-
 {% endblock %}

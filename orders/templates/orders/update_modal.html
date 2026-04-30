@@ -1,26 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
-
-<div class="max-w-md mx-auto bg-white p-6 rounded shadow">
-
-    <h3 class="text-lg font-bold mb-4">Update Status Order</h3>
-
-    <form method="post">
-        {% csrf_token %}
-
-        <label class="block mb-2">Payment Status</label>
-        {{ form.payment_status }}
-
-        <div class="flex justify-end gap-2 mt-4">
-            <a href="{% url 'orders:list' %}" 
-               class="px-4 py-2 bg-gray-200 rounded">Batal</a>
-
-            <button class="px-4 py-2 bg-blue-600 text-white rounded">
-                Update
-            </button>
+<div class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[400px] overflow-hidden">
+        <!-- Header -->
+        <div class="px-6 py-5 flex justify-between items-center border-b border-gray-100">
+            <h2 class="text-xl font-bold text-gray-900">Update Status Order</h2>
+            <a href="{% url 'orders:list' %}" class="text-gray-400 hover:text-gray-600 transition p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </a>
         </div>
-    </form>
 
+        <!-- Body -->
+        <div class="p-6">
+            <p class="font-mono font-medium text-gray-500 mb-6">{{ order.id|stringformat:"s"|slice:":8" }}</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-8">
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Payment Status</label>
+                    {{ form.payment_status }}
+                </div>
+                
+                <div class="flex gap-3 mt-4">
+                    <a href="{% url 'orders:list' %}" class="w-1/2 flex justify-center py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition">Batal</a>
+                    <button type="submit" class="w-1/2 flex justify-center py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
-
 {% endblock %}

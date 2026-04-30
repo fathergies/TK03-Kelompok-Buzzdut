@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block title %}Checkout Tiket — TikTakTuk{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Top Header & Breadcrumb -->
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">Checkout Tiket</h1>
+        <div class="text-sm font-medium">
+            <span class="text-blue-600">Pilih</span>
+            <span class="text-gray-300 mx-2">›</span>
+            <span class="text-gray-400">Bayar</span>
+            <span class="text-gray-300 mx-2">›</span>
+            <span class="text-gray-400">Selesai</span>
+        </div>
+    </div>
+
+    <form method="POST" id="checkout-form" class="flex flex-col lg:flex-row gap-6">
+        {% csrf_token %}
+        
+        <!-- LEFT COLUMN -->
+        <div class="w-full lg:w-2/3 space-y-6">
+            
+            <!-- Event Info Card -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5">
+                <div class="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center text-white shadow-inner flex-shrink-0">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">{{ event.title }}</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">Oleh <span class="font-medium text-gray-700">{{ event.organizer.username }}</span></p>
+                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500 font-medium">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            {{ event.start_date|date:"Y-m-d H:i" }}
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            {{ event.venue.name|default:"Venue belum ditentukan" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pilih Kategori Tiket Card -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-900">Pilih Kategori Tiket</h3>
+                <p class="text-sm text-gray-500 mb-5">Setiap kategori memiliki fasilitas berbeda</p>
+                
+                <div class="space-y-3">
+                    {% for cat in categories %}
+                    <label class="cat-label flex items-center justify-between p-4 border rounded-xl cursor-pointer transition relative hover:bg-gray-50
+                        {% if forloop.first %} border-blue-500 bg-blue-50 {% else %} border-gray-200 {% endif %}">
+                        
+                        <input type="radio" name="category_id" value="{{ cat.category_id }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                        
+                        <div>
+                            <p class="font-bold text-gray-900">{{ cat.category_name }}</p>
+                            <p class="text-xs text-gray-400 mt-1">Sisa Kuota: {{ cat.quota }} tiket</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-blue-600">Rp {{ cat.price|floatformat:0 }}</span>
+                            <!-- Check Icon (Visible when selected) -->
+                            <div class="check-icon w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white {% if not forloop.first %}hidden{% endif %} shadow-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                        </div>
+                    </label>
+                    {% empty %}
+                    <p class="text-sm text-gray-500 italic">Belum ada kategori tiket tersedia.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Row: Jumlah Tiket & Pilih Kursi -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Jumlah Tiket -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-900 mb-5">Jumlah Tiket</h3>
+                    <div class="flex items-center gap-4">
+                        <button type="button" id="btn-minus" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 focus:outline-none transition font-medium text-lg">-</button>
+                        <input type="number" id="qty-input" name="quantity" value="1" min="1" max="10" class="w-12 text-center text-xl font-bold border-none p-0 focus:ring-0 text-gray-900 bg-transparent" readonly>
+                        <button type="button" id="btn-plus" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 focus:outline-none transition font-medium text-lg">+</button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-4">Max 10 tiket per transaksi</p>
+                </div>
+
+                <!-- Pilih Kursi (Visual Only) -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-900 mb-5">Pilih Kursi</h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">A1</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">A2</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">A3</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">A4</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">A5</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">B1</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">B2</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">B3</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">B4</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">B5</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">C1</div>
+                        <div class="h-8 border border-gray-200 rounded text-[10px] font-bold flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 cursor-pointer transition">C2</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kode Promo Card -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-900 mb-5">Kode Promo</h3>
+                <div class="flex gap-3">
+                    <input type="text" name="promo_code" placeholder="CONTOH: TIKTAK20" class="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm uppercase outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-mono">
+                    <button type="button" id="btn-promo" class="px-5 py-2.5 border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition">Terapkan</button>
+                </div>
+                <p class="text-xs text-blue-500 mt-2 hidden" id="promo-msg">Kode promo akan divalidasi saat Anda menekan Bayar Sekarang.</p>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Ringkasan Pesanan -->
+        <div class="w-full lg:w-1/3">
+            <div class="bg-white p-6 rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 sticky top-24">
+                <h3 class="font-bold text-gray-900 mb-6">Ringkasan Pesanan</h3>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="flex justify-between text-sm">
+                        <span id="summary-name" class="text-gray-500">Pilih Kategori</span>
+                        <span id="summary-price" class="font-medium text-gray-900">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Biaya Layanan</span>
+                        <span class="font-medium text-gray-900">Rp 0</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-4 mb-8 flex justify-between items-center">
+                    <span class="font-bold text-gray-900">Total</span>
+                    <span id="summary-total" class="text-2xl font-bold text-gray-900">Rp 0</span>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md shadow-blue-500/30 transition">Bayar Sekarang</button>
+                
+                <p class="text-center text-[10px] text-gray-400 mt-4">Konfirmasi tiket akan dikirim ke email akun Anda.</p>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const categoryRadios = document.querySelectorAll('input[name="category_id"]');
+        const qtyInput = document.getElementById('qty-input');
+        const btnMinus = document.getElementById('btn-minus');
+        const btnPlus = document.getElementById('btn-plus');
+        
+        const summaryName = document.getElementById('summary-name');
+        const summaryPrice = document.getElementById('summary-price');
+        const summaryTotal = document.getElementById('summary-total');
+
+        const categoryPrices = {
+            {% for cat in categories %}
+            '{{ cat.category_id }}': {
+                name: '{{ cat.category_name|escapejs }}',
+                price: {{ cat.price|stringformat:"f" }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        };
+
+        function formatRupiah(number) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        }
+
+        function updateSummary() {
+            const selectedRadio = document.querySelector('input[name="category_id"]:checked');
+            const qty = parseInt(qtyInput.value) || 1;
+            
+            if (selectedRadio) {
+                const catId = selectedRadio.value;
+                const catData = categoryPrices[catId];
+                
+                document.querySelectorAll('.cat-label').forEach(lbl => {
+                    lbl.classList.remove('border-blue-500', 'bg-blue-50');
+                    lbl.classList.add('border-gray-200');
+                    const icon = lbl.querySelector('.check-icon');
+                    if(icon) icon.classList.add('hidden');
+                });
+                
+                const selectedLabel = selectedRadio.closest('.cat-label');
+                selectedLabel.classList.remove('border-gray-200');
+                selectedLabel.classList.add('border-blue-500', 'bg-blue-50');
+                const icon = selectedLabel.querySelector('.check-icon');
+                if(icon) icon.classList.remove('hidden');
+
+                if (catData) {
+                    summaryName.textContent = `${catData.name} x ${qty}`;
+                    const total = catData.price * qty;
+                    summaryPrice.textContent = formatRupiah(total).replace('Rp', 'Rp ');
+                    summaryTotal.textContent = formatRupiah(total).replace('Rp', 'Rp ');
+                }
+            }
+        }
+
+        categoryRadios.forEach(radio => radio.addEventListener('change', updateSummary));
+
+        btnMinus.addEventListener('click', () => {
+            let val = parseInt(qtyInput.value);
+            if (val > 1) {
+                qtyInput.value = val - 1;
+                updateSummary();
+            }
+        });
+
+        btnPlus.addEventListener('click', () => {
+            let val = parseInt(qtyInput.value);
+            if (val < 10) {
+                qtyInput.value = val + 1;
+                updateSummary();
+            }
+        });
+
+        const btnPromo = document.getElementById('btn-promo');
+        const promoMsg = document.getElementById('promo-msg');
+        if (btnPromo && promoMsg) {
+            btnPromo.addEventListener('click', () => {
+                promoMsg.classList.remove('hidden');
+            });
+        }
+
+        updateSummary();
+    });
+</script>
+{% endblock %}
