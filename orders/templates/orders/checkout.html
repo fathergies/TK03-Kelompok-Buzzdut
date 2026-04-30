@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout Tiket - TikTakTuk{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-gray-950">Checkout Tiket</h1>
+        <div class="hidden sm:flex items-center gap-2 text-xs font-bold">
+            <span class="text-blue-600">Pilih</span>
+            <span class="text-gray-300">></span>
+            <span class="text-gray-400">Bayar</span>
+            <span class="text-gray-300">></span>
+            <span class="text-gray-400">Selesai</span>
+        </div>
+    </div>
+
+    {% if not default_category %}
+    <div class="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
+        <p class="text-sm text-gray-500">Tiket untuk event ini belum tersedia.</p>
+        <a href="{% url 'ticketing:event_list' %}" class="inline-flex mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Kembali</a>
+    </div>
+    {% else %}
+    <form method="post" id="checkoutForm" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {% csrf_token %}
+        <input type="hidden" name="category_id" id="selectedCategoryId" value="{{ default_category.pk }}">
+
+        <div class="lg:col-span-2 space-y-5">
+            <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-xl bg-blue-600 text-white flex items-center justify-center text-3xl">♪</div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-950">{{ event.title }}</h2>
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                            <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[11px] font-bold">{{ event.category }}</span>
+                            <span class="px-2 py-0.5 rounded bg-gray-50 text-gray-600 text-[11px] font-bold">{{ event.status }}</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-2">{{ event.start_date|date:"Y-m-d H:i" }} | {{ event.venue.name }}</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                <h3 class="font-bold text-gray-950">Pilih Kategori Tiket</h3>
+                <p class="text-sm text-gray-500 mt-1">Setiap kategori memiliki fasilitas berbeda</p>
+                <div class="space-y-3 mt-6">
+                    {% for row in categories %}
+                    <label class="category-option flex items-center justify-between gap-4 rounded-xl border border-gray-100 px-4 py-4 cursor-pointer hover:border-blue-300 transition {% if forloop.first %}border-blue-500 bg-blue-50{% endif %}"
+                           data-category-id="{{ row.category.pk }}"
+                           data-name="{{ row.category.category_name|escapejs }}"
+                           data-price="{{ row.category.price|floatformat:0 }}"
+                           data-remaining="{{ row.remaining }}">
+                        <input type="radio" name="category_choice" value="{{ row.category.pk }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                        <span>
+                            <span class="block font-bold text-gray-950">{{ row.category.category_name }}</span>
+                            <span class="block text-sm text-gray-500">Kuota: {{ row.remaining }} tiket</span>
+                        </span>
+                        <span class="flex items-center gap-3">
+                            <span class="font-bold text-gray-900">Rp {{ row.category.price|floatformat:0 }}</span>
+                            <span class="checkmark hidden w-5 h-5 rounded-full bg-blue-600 text-white text-xs items-center justify-center">✓</span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                    <h3 class="font-bold text-gray-950">Jumlah Tiket</h3>
+                    <div class="flex items-center gap-4 mt-8">
+                        <button type="button" id="decreaseQty" class="w-10 h-10 rounded-lg border border-gray-200 text-lg font-bold">-</button>
+                        <input id="quantity" name="quantity" value="1" min="1" max="10" inputmode="numeric"
+                               class="w-12 text-center text-2xl font-bold text-gray-950 focus:outline-none">
+                        <button type="button" id="increaseQty" class="w-10 h-10 rounded-lg border border-gray-200 text-lg font-bold">+</button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-4">Max 10 tiket per transaksi</p>
+                </section>
+
+                <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                    <h3 class="font-bold text-gray-950">Pilih Kursi</h3>
+                    {% if event.venue.has_reserved_seating %}
+                    <div class="grid grid-cols-4 gap-2 mt-8">
+                        {% for seat in available_seats %}
+                        <label class="seat-option">
+                            <input type="checkbox" name="seat_ids" value="{{ seat.seat_id }}" class="sr-only">
+                            <span class="block text-center rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold cursor-pointer hover:border-blue-400">
+                                {{ seat.row_number }}{{ seat.seat_number }}
+                            </span>
+                        </label>
+                        {% empty %}
+                        <p class="col-span-4 text-sm text-gray-500">Tidak ada kursi tersedia.</p>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-gray-500 mt-8">Venue ini menggunakan free seating.</p>
+                    {% endif %}
+                </section>
+            </div>
+
+            <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                <h3 class="font-bold text-gray-950">Kode Promo</h3>
+                <div class="flex flex-col sm:flex-row gap-3 mt-8">
+                    <input id="promoCode" name="promo_code" list="promoOptions" placeholder="CONTOH: TIKTAK20"
+                           class="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="button" id="applyPromo" class="px-6 py-3 rounded-xl border border-gray-200 text-sm font-bold hover:bg-gray-50">Terapkan</button>
+                </div>
+                <datalist id="promoOptions">
+                    {% for promo in active_promos %}
+                    <option value="{{ promo.code }}"></option>
+                    {% endfor %}
+                </datalist>
+                <p id="promoHint" class="text-xs text-gray-400 mt-3">Kode promo akan divalidasi saat checkout.</p>
+            </section>
+        </div>
+
+        <aside class="bg-white rounded-xl border border-gray-100 shadow-sm h-fit sticky top-24">
+            <div class="p-6 border-b border-gray-100">
+                <h3 class="font-bold text-gray-950">Ringkasan Pesanan</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between text-sm">
+                    <span id="summaryCategory" class="text-gray-500">{{ default_category.category_name }} x 1</span>
+                    <span id="summarySubtotal" class="font-medium text-gray-900">Rp {{ default_category.price|floatformat:0 }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Biaya Layanan</span>
+                    <span class="font-medium text-gray-900">Rp 0</span>
+                </div>
+                <div class="border-t border-gray-100 pt-4 flex justify-between items-center">
+                    <span class="text-sm font-bold text-gray-900">Total</span>
+                    <span id="summaryTotal" class="text-2xl font-black text-gray-950">Rp {{ default_category.price|floatformat:0 }}</span>
+                </div>
+                <button type="submit" class="w-full mt-2 px-5 py-4 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
+                    Bayar Sekarang
+                </button>
+                <p class="text-center text-xs text-gray-400">Konfirmasi tiket akan dikirim ke {{ user.email|default:user.username }}</p>
+            </div>
+        </aside>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const categoryOptions = Array.from(document.querySelectorAll('.category-option'));
+    const selectedCategoryId = document.getElementById('selectedCategoryId');
+    const quantityInput = document.getElementById('quantity');
+    const summaryCategory = document.getElementById('summaryCategory');
+    const summarySubtotal = document.getElementById('summarySubtotal');
+    const summaryTotal = document.getElementById('summaryTotal');
+    const seatOptions = Array.from(document.querySelectorAll('.seat-option input'));
+
+    function rupiah(value) {
+        return 'Rp ' + Number(value).toLocaleString('id-ID');
+    }
+
+    function selectedCategory() {
+        return categoryOptions.find(option => option.querySelector('input').checked);
+    }
+
+    function maxQuantity() {
+        const option = selectedCategory();
+        const remaining = option ? Number(option.dataset.remaining) : 1;
+        return Math.max(1, Math.min(10, remaining));
+    }
+
+    function updateSummary() {
+        const option = selectedCategory();
+        if (!option) return;
+        const qty = Math.max(1, Math.min(Number(quantityInput.value || 1), maxQuantity()));
+        quantityInput.value = qty;
+        const price = Number(option.dataset.price);
+        const subtotal = price * qty;
+        selectedCategoryId.value = option.dataset.categoryId;
+        summaryCategory.textContent = `${option.dataset.name} x ${qty}`;
+        summarySubtotal.textContent = rupiah(subtotal);
+        summaryTotal.textContent = rupiah(subtotal);
+    }
+
+    categoryOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            categoryOptions.forEach(item => {
+                item.classList.remove('border-blue-500', 'bg-blue-50');
+                item.querySelector('.checkmark').classList.add('hidden');
+                item.querySelector('.checkmark').classList.remove('inline-flex');
+            });
+            option.classList.add('border-blue-500', 'bg-blue-50');
+            option.querySelector('input').checked = true;
+            option.querySelector('.checkmark').classList.remove('hidden');
+            option.querySelector('.checkmark').classList.add('inline-flex');
+            updateSummary();
+        });
+    });
+
+    document.getElementById('decreaseQty')?.addEventListener('click', () => {
+        quantityInput.value = Math.max(1, Number(quantityInput.value || 1) - 1);
+        updateSummary();
+    });
+    document.getElementById('increaseQty')?.addEventListener('click', () => {
+        quantityInput.value = Math.min(maxQuantity(), Number(quantityInput.value || 1) + 1);
+        updateSummary();
+    });
+    quantityInput?.addEventListener('input', updateSummary);
+
+    seatOptions.forEach(input => {
+        input.addEventListener('change', () => {
+            const checked = seatOptions.filter(seat => seat.checked);
+            if (checked.length > Number(quantityInput.value || 1)) {
+                input.checked = false;
+            }
+            input.nextElementSibling.classList.toggle('border-blue-500', input.checked);
+            input.nextElementSibling.classList.toggle('bg-blue-50', input.checked);
+            input.nextElementSibling.classList.toggle('text-blue-700', input.checked);
+        });
+    });
+
+    document.getElementById('applyPromo')?.addEventListener('click', () => {
+        const hint = document.getElementById('promoHint');
+        hint.textContent = 'Kode promo akan dicek saat tombol Bayar Sekarang ditekan.';
+        hint.className = 'text-xs text-blue-600 mt-3';
+    });
+
+    categoryOptions[0]?.querySelector('.checkmark')?.classList.remove('hidden');
+    categoryOptions[0]?.querySelector('.checkmark')?.classList.add('inline-flex');
+    updateSummary();
+</script>
+{% endblock %}

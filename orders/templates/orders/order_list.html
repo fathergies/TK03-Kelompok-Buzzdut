@@ -3,79 +3,178 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Daftar Order</h1>
-        <p class="text-gray-500">Riwayat pembelian tiket Anda</p>
+        <p class="text-gray-500">
+            {% if user.role == 'CUSTOMER' %}Riwayat pembelian tiket Anda{% elif user.role == 'ORGANIZER' %}Order dari event yang Anda selenggarakan{% else %}Semua order yang terdaftar pada sistem{% endif %}
+        </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-xl border border-gray-100">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
             <p class="text-xs font-bold text-gray-400 uppercase">Total Order</p>
-            <p class="text-3xl font-bold mt-1">{{ stats.total_order }}</p>
+            <p class="text-2xl font-bold mt-2">{{ stats.total_order }}</p>
         </div>
-        <div class="bg-white p-6 rounded-xl border border-gray-100">
-            <p class="text-xs font-bold text-gray-400 uppercase text-green-500">Lunas</p>
-            <p class="text-3xl font-bold mt-1">{{ stats.lunas }}</p>
+        <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <p class="text-xs font-bold text-gray-400 uppercase">Lunas</p>
+            <p class="text-2xl font-bold mt-2">{{ stats.lunas }}</p>
         </div>
-        <div class="bg-white p-6 rounded-xl border border-gray-100">
-            <p class="text-xs font-bold text-gray-400 uppercase text-amber-500">Pending</p>
-            <p class="text-3xl font-bold mt-1">{{ stats.pending }}</p>
+        <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <p class="text-xs font-bold text-gray-400 uppercase">Pending</p>
+            <p class="text-2xl font-bold mt-2">{{ stats.pending }}</p>
         </div>
         {% if user.role != 'CUSTOMER' %}
-        <div class="bg-white p-6 rounded-xl border border-gray-100">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
             <p class="text-xs font-bold text-gray-400 uppercase">Total Revenue</p>
-            <p class="text-3xl font-bold mt-1 text-blue-600">Rp {{ stats.total_revenue }}</p>
+            <p class="text-2xl font-bold mt-2">Rp {{ stats.total_revenue|floatformat:0 }}</p>
         </div>
         {% endif %}
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-4 border-b flex flex-col md:flex-row gap-4 justify-between">
-            <form method="GET" class="flex gap-2 w-full md:w-auto">
-                <input type="text" name="search" placeholder="Cari Order ID..." class="border rounded-lg px-4 py-2 text-sm w-full md:w-80">
-                <select name="status" onchange="this.form.submit()" class="border rounded-lg px-4 py-2 text-sm">
-                    <option value="">Semua Status</option>
-                    <option value="Lunas">Lunas</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Dibatalkan">Dibatalkan</option>
-                </select>
-            </form>
-        </div>
-        <table class="w-full text-left">
-            <thead class="bg-gray-50 text-gray-400 text-xs uppercase font-semibold">
-                <tr>
-                    <th class="px-6 py-4">Order ID</th>
-                    {% if user.role != 'CUSTOMER' %}<th class="px-6 py-4">Pelanggan</th>{% endif %}
-                    <th class="px-6 py-4">Tanggal</th>
-                    <th class="px-6 py-4">Status</th>
-                    <th class="px-6 py-4">Total</th>
-                    {% if user.role == 'ADMIN' %}<th class="px-6 py-4">Aksi</th>{% endif %}
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                {% for order in orders %}
-                <tr class="text-sm hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 font-mono text-xs text-gray-500">{{ order.id|stringformat:".8s" }}...</td>
-                    {% if user.role != 'CUSTOMER' %}
-                    <td class="px-6 py-4 font-medium">{{ order.customer.username }}</td>
-                    {% endif %}
-                    <td class="px-6 py-4 text-gray-500">{{ order.order_date|date:"Y-m-d H:i" }}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase
-                        {% if order.payment_status == 'Lunas' %}bg-green-100 text-green-700
-                        {% elif order.payment_status == 'Pending' %}bg-amber-100 text-amber-700
-                        {% else %}bg-red-100 text-red-700{% endif %}">
-                            {{ order.payment_status }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 font-bold text-gray-900">Rp {{ order.total_amount }}</td>
-                    {% if user.role == 'ADMIN' %}
-                    <td class="px-6 py-4 text-right">
-                        <button class="p-1 hover:bg-gray-100 rounded">Edit</button>
-                    </td>
-                    {% endif %}
-                </tr>
+    <div class="mb-5 flex flex-col sm:flex-row gap-3">
+        <form method="GET" class="flex flex-col sm:flex-row gap-3 w-full">
+            <input type="text" name="search" value="{{ request.GET.search }}" placeholder="{% if user.role == 'CUSTOMER' %}Cari order ID...{% else %}Cari ID atau pelanggan...{% endif %}" class="w-full sm:max-w-sm border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="status" onchange="this.form.submit()" class="w-full sm:w-44 border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Semua Status</option>
+                {% for value,label in status_choices %}
+                <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
-            </tbody>
-        </table>
+            </select>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase font-bold">
+                    <tr>
+                        <th class="px-6 py-4">Order ID</th>
+                        {% if user.role != 'CUSTOMER' %}<th class="px-6 py-4">Pelanggan</th>{% endif %}
+                        <th class="px-6 py-4">Tanggal</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Total</th>
+                        {% if user.role == 'ADMIN' %}<th class="px-6 py-4 text-right">Aksi</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for order in orders %}
+                    <tr class="text-sm hover:bg-gray-50 transition">
+                        <td class="px-6 py-5 font-mono text-xs text-gray-600">ord_{{ order.id|stringformat:".8s" }}</td>
+                        {% if user.role != 'CUSTOMER' %}
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-3">
+                                <span class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-700">{{ order.customer.username|first|upper }}</span>
+                                <span class="font-medium text-gray-700">{{ order.customer.username }}</span>
+                            </div>
+                        </td>
+                        {% endif %}
+                        <td class="px-6 py-5 text-gray-500">{{ order.order_date|date:"Y-m-d H:i" }}</td>
+                        <td class="px-6 py-5">
+                            <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase
+                            {% if order.payment_status == 'Lunas' %}bg-green-50 text-green-700
+                            {% elif order.payment_status == 'Pending' %}bg-yellow-50 text-yellow-700
+                            {% else %}bg-red-50 text-red-700{% endif %}">
+                                {{ order.payment_status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-5 text-right font-bold text-gray-900">Rp {{ order.total_amount|floatformat:0 }}</td>
+                        {% if user.role == 'ADMIN' %}
+                        <td class="px-6 py-5">
+                            <div class="flex justify-end gap-3 text-gray-400">
+                                <button type="button"
+                                        class="hover:text-blue-600"
+                                        title="Update"
+                                        onclick="openUpdateOrder(this)"
+                                        data-action="{% url 'orders:update_order' order.pk %}"
+                                        data-code="ord_{{ order.id|stringformat:'.8s' }}"
+                                        data-status="{{ order.payment_status }}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button type="button"
+                                        class="hover:text-red-600"
+                                        title="Delete"
+                                        onclick="openDeleteOrder(this)"
+                                        data-action="{% url 'orders:delete_order' order.pk %}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.8 12a2 2 0 01-2 2H7.8a2 2 0 01-2-2L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if user.role == 'ADMIN' %}6{% elif user.role == 'CUSTOMER' %}4{% else %}5{% endif %}" class="px-6 py-12 text-center text-sm text-gray-500">Tidak ada order yang ditemukan.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+{% if user.role == 'ADMIN' %}
+<div id="updateOrderModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+        <div class="px-6 py-5 flex items-center justify-between">
+            <h2 class="text-lg font-bold text-gray-900">Update Status Order</h2>
+            <button type="button" onclick="closeOrderModal('updateOrderModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form id="updateOrderForm" method="post" class="px-6 pb-6 space-y-5">
+            {% csrf_token %}
+            <p id="updateOrderCode" class="font-mono text-sm text-gray-500"></p>
+            <div>
+                <label for="paymentStatus" class="block text-xs font-bold uppercase text-gray-400 mb-2">Payment Status</label>
+                <select id="paymentStatus" name="payment_status" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for value,label in status_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="closeOrderModal('updateOrderModal')" class="px-4 py-3 rounded-xl border border-gray-200 text-sm font-bold">Batal</button>
+                <button class="px-4 py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deleteOrderModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div class="px-6 py-5 flex items-start justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-red-600">Hapus Order</h2>
+                <p class="text-sm text-gray-500 mt-2">Apakah Anda yakin ingin menghapus catatan order ini?</p>
+                <p class="text-sm text-gray-500">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <button type="button" onclick="closeOrderModal('deleteOrderModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form id="deleteOrderForm" method="post" class="px-6 pb-6 flex justify-end gap-3">
+            {% csrf_token %}
+            <button type="button" onclick="closeOrderModal('deleteOrderModal')" class="px-5 py-3 rounded-lg border border-gray-200 text-sm font-bold">Batal</button>
+            <button class="px-5 py-3 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700">Hapus</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openOrderModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function closeOrderModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    function openUpdateOrder(button) {
+        document.getElementById('updateOrderForm').action = button.dataset.action;
+        document.getElementById('updateOrderCode').textContent = button.dataset.code;
+        document.getElementById('paymentStatus').value = button.dataset.status;
+        openOrderModal('updateOrderModal');
+    }
+    function openDeleteOrder(button) {
+        document.getElementById('deleteOrderForm').action = button.dataset.action;
+        openOrderModal('deleteOrderModal');
+    }
+</script>
+{% endif %}
 {% endblock %}

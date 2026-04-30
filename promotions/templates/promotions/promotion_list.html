@@ -7,7 +7,7 @@
             <p class="text-gray-500">Kelola kode promo dan kampanye diskon</p>
         </div>
         {% if user.role == 'ADMIN' %}
-        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center">
+        <button type="button" onclick="openPromoModal('createPromoModal')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center">
             <span class="mr-2">+</span> Buat Promo
         </button>
         {% endif %}
@@ -64,11 +64,28 @@
                     <td class="px-6 py-4 font-bold">{% if promo.discount_type == 'Persentase' %}{{ promo.discount_value|floatformat:0 }}%{% else %}Rp {{ promo.discount_value }}{% endif %}</td>
                     <td class="px-6 py-4 text-gray-500">{{ promo.start_date|date:"Y-m-d" }}</td>
                     <td class="px-6 py-4 text-gray-500">{{ promo.end_date|date:"Y-m-d" }}</td>
-                    <td class="px-6 py-4 text-gray-500">{{ promo.current_usage }} / {{ promo.usage_limit }}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ promo.used_count|default:0 }} / {{ promo.usage_limit }}</td>
                     {% if user.role == 'ADMIN' %}
                     <td class="px-6 py-4">
-                        <button class="text-gray-400 hover:text-blue-600 mr-2">Edit</button>
-                        <button class="text-gray-400 hover:text-red-600">Hapus</button>
+                        <button type="button"
+                                class="text-gray-400 hover:text-blue-600 mr-2"
+                                onclick="openEditPromo(this)"
+                                data-action="{% url 'promotions:update_promotion' promo.pk %}"
+                                data-code="{{ promo.code|escapejs }}"
+                                data-type="{{ promo.discount_type }}"
+                                data-value="{{ promo.discount_value }}"
+                                data-start="{{ promo.start_date|date:'Y-m-d' }}"
+                                data-end="{{ promo.end_date|date:'Y-m-d' }}"
+                                data-limit="{{ promo.usage_limit }}">
+                            Edit
+                        </button>
+                        <button type="button"
+                                class="text-gray-400 hover:text-red-600"
+                                onclick="openDeletePromo(this)"
+                                data-action="{% url 'promotions:delete_promotion' promo.pk %}"
+                                data-code="{{ promo.code|escapejs }}">
+                            Hapus
+                        </button>
                     </td>
                     {% endif %}
                 </tr>
@@ -77,4 +94,85 @@
         </table>
     </div>
 </div>
+
+{% if user.role == 'ADMIN' %}
+<div id="createPromoModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h2 class="text-lg font-bold text-gray-900">Buat Promo Baru</h2>
+            <button type="button" onclick="closePromoModal('createPromoModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form method="post" action="{% url 'promotions:create_promotion' %}" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% csrf_token %}
+            {% include 'promotions/promotion_form_fields.html' with form=form %}
+            <div class="md:col-span-2 flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closePromoModal('createPromoModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-bold">Batal</button>
+                <button class="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Buat</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editPromoModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h2 class="text-lg font-bold text-gray-900">Edit Promo</h2>
+            <button type="button" onclick="closePromoModal('editPromoModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+        <form id="editPromoForm" method="post" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% csrf_token %}
+            {% include 'promotions/promotion_form_fields.html' with form=form prefix='edit_' %}
+            <div class="md:col-span-2 flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closePromoModal('editPromoModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-bold">Batal</button>
+                <button class="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deletePromoModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-lg font-bold text-gray-900">Hapus Promo</h2>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-gray-600">Yakin ingin menghapus promo <span id="deletePromoCode" class="font-bold text-gray-900"></span>?</p>
+            <form id="deletePromoForm" method="post" class="flex justify-end gap-3 mt-6">
+                {% csrf_token %}
+                <button type="button" onclick="closePromoModal('deletePromoModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-bold">Batal</button>
+                <button class="px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Hapus</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function openPromoModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function closePromoModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    function openEditPromo(button) {
+        const form = document.getElementById('editPromoForm');
+        form.action = button.dataset.action;
+        document.getElementById('edit_code').value = button.dataset.code;
+        document.getElementById('edit_discount_type').value = button.dataset.type;
+        document.getElementById('edit_discount_value').value = button.dataset.value;
+        document.getElementById('edit_start_date').value = button.dataset.start;
+        document.getElementById('edit_end_date').value = button.dataset.end;
+        document.getElementById('edit_usage_limit').value = button.dataset.limit;
+        openPromoModal('editPromoModal');
+    }
+    function openDeletePromo(button) {
+        document.getElementById('deletePromoForm').action = button.dataset.action;
+        document.getElementById('deletePromoCode').textContent = button.dataset.code;
+        openPromoModal('deletePromoModal');
+    }
+</script>
 {% endblock %}

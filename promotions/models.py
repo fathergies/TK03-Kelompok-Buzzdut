@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class Promotion(models.Model):
     DISCOUNT_TYPE_CHOICES = [('Persentase', 'Persentase'), ('Nominal', 'Nominal')]
@@ -10,6 +11,11 @@ class Promotion(models.Model):
     end_date = models.DateField()
     usage_limit = models.IntegerField()
     current_usage = models.IntegerField(default=0)
+
+    @property
+    def is_active(self):
+        today = timezone.localdate()
+        return self.start_date <= today <= self.end_date and self.current_usage < self.usage_limit
 
     def __str__(self):
         return self.code

@@ -678,12 +678,21 @@ def delete_seat(request, pk):
 @login_required
 def ticket_list(request):
     """List tickets. Admin can update/delete; Admin and Organizer can create."""
+    from orders.models import Order
+
     tickets = (
         Ticket.objects
         .select_related('tcategory', 'tcategory__tevent', 'tcategory__tevent__venue')
         .prefetch_related('seat_ticket__seat')
         .order_by('ticket_code')
     )
+    orders_by_id = {}
+
+    if request.user.is_authenticated and request.user.role == 'CUSTOMER':
+        customer_orders = Order.objects.filter(customer=request.user)
+        order_ids = list(customer_orders.values_list('id', flat=True))
+        tickets = tickets.filter(torder_id__in=order_ids)
+        orders_by_id = {order.id: order for order in customer_orders}
 
     query = request.GET.get('q', '').strip()
     status = request.GET.get('status', '').strip()
@@ -700,10 +709,11 @@ def ticket_list(request):
     for ticket in tickets:
         relation = ticket.seat_ticket.all()[0] if ticket.seat_ticket.all() else None
         order_code = f"ord_{str(ticket.torder_id).split('-')[0]}"
+        order = orders_by_id.get(ticket.torder_id)
         ticket_rows.append({
             'ticket': ticket,
             'seat': relation.seat if relation else None,
-            'customer_name': _dummy_customer_name(ticket.torder_id),
+            'customer_name': order.customer.username if order else _dummy_customer_name(ticket.torder_id),
             'order_code': order_code,
         })
 
