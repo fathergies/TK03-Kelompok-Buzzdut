@@ -1,7 +1,8 @@
 from django import forms
-from .models import Venue
+from ticketing.models import Venue
+
 
 class VenueForm(forms.ModelForm):
     class Meta:
         model = Venue
-        fields = ['nama_venue', 'alamat', 'kota', 'kapasitas', 'has_reserved_seating']
+        fields = ['name', 'address', 'city', 'capacity', 'has_reserved_seating']

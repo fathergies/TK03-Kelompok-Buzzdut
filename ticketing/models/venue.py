@@ -14,9 +14,14 @@ class Venue(models.Model):
     )
     address = models.TextField()
     city = models.CharField(max_length=255)
+    has_reserved_seating = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.name} ({self.city})"
+
+    @property
+    def seating_label(self):
+        return "Reserved Seating" if self.has_reserved_seating else "Free Seating"
 
     class Meta:
         ordering = ['name']

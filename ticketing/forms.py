@@ -1,7 +1,7 @@
 from django import forms
 from django.db import models
 
-from .models import Artist, HasRelationship, Seat, Ticket, Ticket_Category
+from .models import Artist, Event, Event_Artist, HasRelationship, Seat, Ticket, Ticket_Category, Venue
 
 
 # =============================================================================
@@ -100,7 +100,104 @@ class TicketCategoryForm(forms.ModelForm):
 
         return cleaned_data
 
+class EventForm(forms.ModelForm):
+    artist = forms.CharField(required=True)
 
+    class Meta:
+        model = Event
+        fields = ['title', 'description', 'category', 'status', 'start_date', 'end_date', 'venue']
+        labels = {
+            'title': 'Judul Acara',
+            'description': 'Deskripsi',
+            'category': 'Kategori',
+            'status': 'Status',
+            'start_date': 'Tanggal & Waktu Mulai',
+            'end_date': 'Tanggal & Waktu Selesai',
+            'venue': 'Venue',
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white',
+                'placeholder': 'cth. Konser Melodi Senja',
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white',
+                'rows': 3,
+                'placeholder': 'Deskripsi singkat acara',
+            }),
+            'category': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
+            }),
+            'start_date': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white',
+            }),
+            'end_date': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white',
+            }),
+            'venue': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.organizer = kwargs.pop('organizer', None)
+        super().__init__(*args, **kwargs)
+
+        self.fields['venue'].queryset = Venue.objects.all().order_by('name')
+
+        if self.instance and self.instance.pk:
+            event_artist = self.instance.event_artists.select_related('artist').first()
+            if event_artist:
+                self.fields['artist'].initial = str(event_artist.artist.artist_id)
+
+            if self.instance.start_date:
+                self.fields['start_date'].initial = self.instance.start_date.strftime('%Y-%m-%dT%H:%M')
+            if self.instance.end_date:
+                self.fields['end_date'].initial = self.instance.end_date.strftime('%Y-%m-%dT%H:%M')
+
+    def clean_artist(self):
+        artist_id = self.cleaned_data.get('artist')
+
+        try:
+            return Artist.objects.get(artist_id=artist_id)
+        except Artist.DoesNotExist:
+            raise forms.ValidationError('Artist tidak valid atau tidak ditemukan.')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if start_date and end_date and end_date <= start_date:
+            raise forms.ValidationError('Tanggal selesai harus setelah tanggal mulai.')
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        event = super().save(commit=False)
+
+        if not event.pk and self.organizer:
+            event.organizer = self.organizer
+
+        if commit:
+            event.save()
+
+            artist = self.cleaned_data.get('artist')
+            if artist:
+                Event_Artist.objects.filter(event=event).delete()
+                Event_Artist.objects.create(
+                    event=event,
+                    artist=artist,
+                    role='Main Performer'
+                )
+
+        return event
+    
 class SeatForm(forms.ModelForm):
     """Form for creating and editing venue seats."""
 

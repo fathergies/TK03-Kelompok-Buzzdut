@@ -1,240 +1,393 @@
-{% extends 'venue/base_venue.html' %}
+{% extends "base.html" %}
+
+{% block title %}Manajemen Venue — TikTakTuk{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-start mb-7">
-    <div>
-        <h1 class="text-4xl font-extrabold text-slate-900 mb-2">Manajemen Venue</h1>
-        <p class="text-slate-500 text-lg">Kelola lokasi pertunjukan dan kapasitas tempat duduk</p>
-    </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    {% if is_admin_or_organizer %}
-    <button onclick="openModal('createVenueModal')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-6 py-3 rounded-xl shadow-sm">
-        + Tambah Venue
-    </button>
-    {% endif %}
-</div>
-
-<div class="grid grid-cols-3 gap-5 mb-6">
-    <div class="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm">
-        <p class="text-xs font-bold uppercase text-slate-400 mb-3">Total Venue</p>
-        <p class="text-3xl font-extrabold text-slate-900">{{ total_venues }}</p>
-    </div>
-
-    <div class="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm">
-        <p class="text-xs font-bold uppercase text-slate-400 mb-3">Reserved Seating</p>
-        <p class="text-3xl font-extrabold text-slate-900">{{ reserved_count }}</p>
-    </div>
-
-    <div class="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm">
-        <p class="text-xs font-bold uppercase text-slate-400 mb-3">Total Kapasitas</p>
-        <p class="text-3xl font-extrabold text-slate-900">{{ total_capacity }}</p>
-    </div>
-</div>
-
-<form method="GET" class="grid grid-cols-[2fr_1fr_1fr_auto] gap-3 mb-6">
-    <input 
-        type="text" 
-        name="q" 
-        placeholder="🔍  Cari nama atau alamat..." 
-        value="{{ query }}"
-        class="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-    >
-
-    <select 
-        name="city"
-        class="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-    >
-        <option value="">Semua Kota</option>
-        {% for city in cities %}
-            <option value="{{ city }}" {% if selected_city == city %}selected{% endif %}>{{ city }}</option>
-        {% endfor %}
-    </select>
-
-    <select 
-        name="seating"
-        class="bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-    >
-        <option value="">Semua Tipe Seating</option>
-        <option value="reserved" {% if selected_seating == 'reserved' %}selected{% endif %}>Reserved Seating</option>
-        <option value="free" {% if selected_seating == 'free' %}selected{% endif %}>Free Seating</option>
-    </select>
-
-    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-5 py-3 rounded-xl">
-        Filter
-    </button>
-</form>
-
-<div class="space-y-5">
-    {% for venue in venues %}
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <div class="flex justify-between items-start gap-5">
-            <div class="flex gap-4">
-                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-2xl">
-                    🏢
-                </div>
-
-                <div>
-                    <h3 class="text-xl font-extrabold text-slate-900 mb-1">{{ venue.nama_venue }}</h3>
-                    <p class="text-sm text-slate-500 mb-4">📍 {{ venue.alamat }}, {{ venue.kota }}</p>
-
-                    <div class="bg-slate-50 rounded-xl px-4 py-3 w-56">
-                        <p class="text-xs uppercase text-slate-400 font-bold mb-1">Kapasitas</p>
-                        <p class="font-extrabold text-slate-900">{{ venue.kapasitas }} Kursi</p>
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                {% if venue.has_reserved_seating %}
-                <span class="bg-indigo-50 text-indigo-500 text-xs font-extrabold uppercase px-3 py-2 rounded-full">
-                    Reserved Seating
-                </span>
-                {% else %}
-                <span class="bg-slate-100 text-slate-500 text-xs font-extrabold uppercase px-3 py-2 rounded-full">
-                    Free Seating
-                </span>
-                {% endif %}
-            </div>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Manajemen Venue</h1>
+            <p class="text-sm text-gray-500 mt-1">Kelola lokasi pertunjukan dan kapasitas tempat duduk</p>
         </div>
 
         {% if is_admin_or_organizer %}
-        <div class="flex gap-3 mt-5 pt-4 border-t border-slate-100">
-            <button onclick="openModal('editModal{{ venue.venue_id }}')" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl font-semibold">
-                ✎ Edit
-            </button>
-
-            <button onclick="openModal('deleteModal{{ venue.venue_id }}')" class="bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 px-4 py-2 rounded-xl font-semibold">
-                🗑 Hapus
-            </button>
-        </div>
+        <button onclick="openModal('createVenueModal')"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Tambah Venue
+        </button>
         {% endif %}
     </div>
 
-    <!-- Edit Modal -->
-    <div id="editModal{{ venue.venue_id }}" class="hidden fixed inset-0 bg-slate-900/40 z-50 items-center justify-center px-4">
-        <div class="bg-white rounded-3xl w-full max-w-xl p-8 relative shadow-xl">
-            <button onclick="closeModal('editModal{{ venue.venue_id }}')" class="absolute top-5 right-6 text-slate-400 text-3xl">&times;</button>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total Venue</p>
+            <p class="text-3xl font-bold text-gray-900">{{ total_venues }}</p>
+        </div>
 
-            <h2 class="text-2xl font-extrabold text-slate-900 mb-6">Edit Venue</h2>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Reserved Seating</p>
+            <p class="text-3xl font-bold text-gray-900">{{ reserved_count }}</p>
+        </div>
 
-            <form method="POST" action="{% url 'venue_update' venue.venue_id %}">
-                {% csrf_token %}
-
-                <div class="mb-4">
-                    <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Nama Venue (Venue_Name)</label>
-                    <input type="text" name="nama_venue" value="{{ venue.nama_venue }}" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Kapasitas (Capacity)</label>
-                        <input type="number" name="kapasitas" value="{{ venue.kapasitas }}" min="1" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Kota (City)</label>
-                        <input type="text" name="kota" value="{{ venue.kota }}" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300">
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Alamat (Address)</label>
-                    <textarea name="alamat" rows="4" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300">{{ venue.alamat }}</textarea>
-                </div>
-
-                <label class="flex items-center gap-3 text-slate-600 mb-7">
-                    <input type="checkbox" name="has_reserved_seating" {% if venue.has_reserved_seating %}checked{% endif %} class="w-5 h-5">
-                    Has Reserved Seating
-                </label>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <button type="button" onclick="closeModal('editModal{{ venue.venue_id }}')" class="bg-white border border-slate-200 text-slate-700 font-bold py-3 rounded-2xl">
-                        Batal
-                    </button>
-                    <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-2xl">
-                        Simpan
-                    </button>
-                </div>
-            </form>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total Kapasitas</p>
+            <p class="text-3xl font-bold text-gray-900">{{ total_capacity }}</p>
         </div>
     </div>
 
-    <!-- Delete Modal -->
-    <div id="deleteModal{{ venue.venue_id }}" class="hidden fixed inset-0 bg-slate-900/40 z-50 items-center justify-center px-4">
-        <div class="bg-white rounded-3xl w-full max-w-lg p-8 relative shadow-xl">
-            <button onclick="closeModal('deleteModal{{ venue.venue_id }}')" class="absolute top-5 right-6 text-slate-400 text-3xl">&times;</button>
-
-            <h2 class="text-3xl font-extrabold text-red-500 mb-4">Hapus Venue</h2>
-            <p class="text-slate-500 text-lg leading-relaxed mb-8">
-                Apakah Anda yakin ingin menghapus venue ini? Tindakan ini tidak dapat dibatalkan.
-            </p>
-
-            <form method="POST" action="{% url 'venue_delete' venue.venue_id %}">
-                {% csrf_token %}
-                <div class="grid grid-cols-2 gap-4">
-                    <button type="button" onclick="closeModal('deleteModal{{ venue.venue_id }}')" class="bg-white border border-slate-200 text-slate-700 font-bold py-3 rounded-2xl">
-                        Batal
-                    </button>
-                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-2xl">
-                        Hapus
-                    </button>
-                </div>
-            </form>
+    <!-- Filters -->
+    <form method="get" class="mb-6 flex flex-col lg:flex-row gap-3">
+        <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+            <input type="text"
+                   name="q"
+                   value="{{ query }}"
+                   placeholder="Cari nama atau alamat..."
+                   class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
         </div>
+
+        <div class="relative w-full lg:w-64">
+            <select name="city"
+                    class="block w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                    onchange="this.form.submit()">
+                <option value="">Semua Kota</option>
+                {% for city in cities %}
+                    <option value="{{ city }}" {% if selected_city == city %}selected{% endif %}>{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="relative w-full lg:w-64">
+            <select name="seating"
+                    class="block w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                    onchange="this.form.submit()">
+                <option value="">Semua Tipe Seating</option>
+                <option value="reserved" {% if selected_seating == 'reserved' %}selected{% endif %}>Reserved Seating</option>
+                <option value="free" {% if selected_seating == 'free' %}selected{% endif %}>Free Seating</option>
+            </select>
+        </div>
+
+        <button type="submit"
+                class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
+            Filter
+        </button>
+    </form>
+
+    <!-- Venue Cards -->
+    <div class="space-y-4">
+        {% for venue in venues %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+
+            <div class="flex justify-between items-start gap-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H5m2 0h4m0 0v-5a2 2 0 012-2h0a2 2 0 012 2v5m-4 0h4M9 7h1m4 0h1M9 11h1m4 0h1"/>
+                        </svg>
+                    </div>
+
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">{{ venue.name }}</h2>
+                        <p class="text-sm text-gray-500 mt-1">
+                            <span class="inline-block mr-1">📍</span>{{ venue.address }}, {{ venue.city }}
+                        </p>
+
+                        <div class="mt-4 bg-gray-50 rounded-lg px-4 py-3 w-full sm:w-64">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kapasitas</p>
+                            <p class="text-sm font-bold text-gray-900 mt-1">{{ venue.capacity }} Kursi</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    {% if venue.has_reserved_seating %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 uppercase">
+                        Reserved Seating
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600 uppercase">
+                        Free Seating
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if is_admin_or_organizer %}
+            <div class="mt-5 pt-4 border-t border-gray-100 flex items-center gap-2">
+                <button onclick="openEditModal('{{ venue.id }}', '{{ venue.name|escapejs }}', '{{ venue.capacity }}', '{{ venue.city|escapejs }}', '{{ venue.address|escapejs }}', '{{ venue.has_reserved_seating|yesno:"true,false" }}')"
+                        class="inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit
+                </button>
+
+                <button onclick="openDeleteModal('{{ venue.id }}', '{{ venue.name|escapejs }}')"
+                        class="inline-flex items-center px-3 py-2 text-xs font-semibold text-red-500 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition">
+                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Hapus
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        {% empty %}
+        <div class="bg-white border border-dashed border-gray-300 rounded-xl p-12 text-center">
+            <p class="text-gray-500">Belum ada data venue.</p>
+            {% if is_admin_or_organizer %}
+                <p class="text-sm text-gray-400 mt-1">Klik <strong>+ Tambah Venue</strong> untuk menambahkan venue.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center text-slate-500">
-        Belum ada data venue.
-    </div>
-    {% endfor %}
 </div>
 
-<!-- Create Modal -->
-<div id="createVenueModal" class="hidden fixed inset-0 bg-slate-900/40 z-50 items-center justify-center px-4">
-    <div class="bg-white rounded-3xl w-full max-w-xl p-8 relative shadow-xl">
-        <button onclick="closeModal('createVenueModal')" class="absolute top-5 right-6 text-slate-400 text-3xl">&times;</button>
+{% if is_admin_or_organizer %}
+<!-- CREATE MODAL -->
+<div id="createVenueModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('createVenueModal')"></div>
 
-        <h2 class="text-2xl font-extrabold text-slate-900 mb-6">Tambah Venue Baru</h2>
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-900">Tambah Venue Baru</h3>
+            <button onclick="closeModal('createVenueModal')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
 
-        <form method="POST" action="{% url 'venue_create' %}">
+        <form method="post" action="{% url 'venue_create' %}">
             {% csrf_token %}
 
             <div class="mb-4">
-                <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Nama Venue (Venue_Name)</label>
-                <input type="text" name="nama_venue" placeholder="cth. Jakarta Convention Center" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Nama Venue (Venue_Name) <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="name"
+                       required
+                       placeholder="cth. Jakarta Convention Center"
+                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Kapasitas (Capacity)</label>
-                    <input type="number" name="kapasitas" placeholder="1000" min="1" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Kapasitas (Capacity) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number"
+                           name="capacity"
+                           min="1"
+                           required
+                           placeholder="1000"
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Kota (City)</label>
-                    <input type="text" name="kota" placeholder="Jakarta" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Kota (City) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text"
+                           name="city"
+                           required
+                           placeholder="Jakarta"
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
 
             <div class="mb-4">
-                <label class="block text-sm font-bold uppercase text-slate-500 mb-2">Alamat (Address)</label>
-                <textarea name="alamat" rows="4" placeholder="Jl. Gatot Subroto No.1" required class="w-full border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Alamat (Address) <span class="text-red-500">*</span>
+                </label>
+                <textarea name="address"
+                          rows="4"
+                          required
+                          placeholder="Jl. Gatot Subroto No.1"
+                          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
             </div>
 
-            <label class="flex items-center gap-3 text-slate-600 mb-7">
-                <input type="checkbox" name="has_reserved_seating" class="w-5 h-5">
+            <label class="flex items-center gap-2 text-sm text-gray-600 mb-6">
+                <input type="checkbox" name="has_reserved_seating" class="w-4 h-4 rounded border-gray-300">
                 Has Reserved Seating
             </label>
 
-            <div class="grid grid-cols-2 gap-4">
-                <button type="button" onclick="closeModal('createVenueModal')" class="bg-white border border-slate-200 text-slate-700 font-bold py-3 rounded-2xl">
+            <div class="flex gap-3">
+                <button type="button"
+                        onclick="closeModal('createVenueModal')"
+                        class="flex-1 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition">
                     Batal
                 </button>
-                <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-2xl">
+                <button type="submit"
+                        class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition">
                     Tambah
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<!-- EDIT MODAL -->
+<div id="editVenueModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('editVenueModal')"></div>
+
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-900">Edit Venue</h3>
+            <button onclick="closeModal('editVenueModal')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form id="editVenueForm" method="post">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Nama Venue (Venue_Name) <span class="text-red-500">*</span>
+                </label>
+                <input type="text"
+                       name="name"
+                       id="editNamaVenue"
+                       required
+                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Kapasitas (Capacity) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number"
+                           name="capacity"
+                           id="editKapasitas"
+                           min="1"
+                           required
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Kota (City) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text"
+                           name="city"
+                           id="editKota"
+                           required
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Alamat (Address) <span class="text-red-500">*</span>
+                </label>
+                <textarea name="address"
+                          id="editAlamat"
+                          rows="4"
+                          required
+                          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <label class="flex items-center gap-2 text-sm text-gray-600 mb-6">
+                <input type="checkbox" name="has_reserved_seating" id="editReserved" class="w-4 h-4 rounded border-gray-300">
+                Has Reserved Seating
+            </label>
+
+            <div class="flex gap-3">
+                <button type="button"
+                        onclick="closeModal('editVenueModal')"
+                        class="flex-1 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition">
+                    Simpan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="deleteVenueModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('deleteVenueModal')"></div>
+
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-red-600">Hapus Venue</h3>
+            <button onclick="closeModal('deleteVenueModal')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-6">
+            Apakah Anda yakin ingin menghapus venue <strong id="deleteVenueName"></strong>? Tindakan ini tidak dapat dibatalkan.
+        </p>
+
+        <form id="deleteVenueForm" method="post">
+            {% csrf_token %}
+            <div class="flex gap-3">
+                <button type="button"
+                        onclick="closeModal('deleteVenueModal')"
+                        class="flex-1 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition">
+                    Hapus
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function openEditModal(id, name, capacity, city, address, reserved) {
+        document.getElementById('editNamaVenue').value = name;
+        document.getElementById('editKapasitas').value = capacity;
+        document.getElementById('editKota').value = city;
+        document.getElementById('editAlamat').value = address;
+        document.getElementById('editReserved').checked = reserved === 'true';
+        document.getElementById('editVenueForm').action = '/venue/update/' + id + '/';
+        openModal('editVenueModal');
+    }
+
+    function openDeleteModal(id, name) {
+        document.getElementById('deleteVenueName').textContent = name;
+        document.getElementById('deleteVenueForm').action = '/venue/delete/' + id + '/';
+        openModal('deleteVenueModal');
+    }
+</script>
 {% endblock %}

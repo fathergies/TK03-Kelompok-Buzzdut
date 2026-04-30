@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Manajemen Event — TikTakTuk{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Manajemen Event</h1>
+            <p class="text-sm text-gray-500 mt-1">
+                Kelola data acara, venue, artis, jadwal, kategori, dan status event.
+            </p>
+        </div>
+
+        <button onclick="openModal('createEventModal')"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Tambah Event
+        </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total Event</p>
+            <p class="text-2xl font-bold text-gray-900">{{ total_events }}</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Scheduled</p>
+            <p class="text-2xl font-bold text-gray-900">{{ scheduled_count }}</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Ongoing</p>
+            <p class="text-2xl font-bold text-gray-900">{{ ongoing_count }}</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Finished</p>
+            <p class="text-2xl font-bold text-gray-900">{{ finished_count }}</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="mb-6 flex flex-col lg:flex-row gap-3">
+        <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+            <input type="text"
+                   name="q"
+                   value="{{ query }}"
+                   placeholder="Cari judul, venue, atau artis..."
+                   class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+        </div>
+
+        <div class="relative w-full lg:w-64">
+            <select name="venue"
+                    onchange="this.form.submit()"
+                    class="block w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+                <option value="">Semua Venue</option>
+                {% for venue in venues %}
+                    <option value="{{ venue.id }}" {% if venue_filter == venue.id|stringformat:"s" %}selected{% endif %}>
+                        {{ venue.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="relative w-full lg:w-64">
+            <select name="artist"
+                    onchange="this.form.submit()"
+                    class="block w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+                <option value="">Semua Artis</option>
+                {% for artist in artists %}
+                    <option value="{{ artist.artist_id }}" {% if artist_filter == artist.artist_id|stringformat:"s" %}selected{% endif %}>
+                        {{ artist.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit"
+                class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
+            Filter
+        </button>
+    </form>
+
+    <!-- Table -->
+    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Event</th>
+                        <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Venue</th>
+                        <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Artist</th>
+                        <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Jadwal</th>
+                        <th class="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for event in events %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <p class="text-sm font-semibold text-gray-900">{{ event.title }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ event.category }}</p>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <p class="text-sm text-gray-900">{{ event.venue.name }}</p>
+                            <p class="text-xs text-gray-500">{{ event.venue.city }}</p>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <p class="text-sm text-gray-700">
+                                {% for ea in event.event_artists.all %}
+                                    {{ ea.artist.name }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    —
+                                {% endfor %}
+                            </p>
+                        </td>
+
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <p class="text-xs text-gray-500">Mulai</p>
+                            <p class="text-sm font-medium text-gray-900">{{ event.start_date|date:"d M Y, H:i" }}</p>
+                            <p class="text-xs text-gray-500 mt-2">Selesai</p>
+                            <p class="text-sm font-medium text-gray-900">{{ event.end_date|date:"d M Y, H:i" }}</p>
+                        </td>
+
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase
+                                {% if event.status == 'Scheduled' %} bg-blue-50 text-blue-700
+                                {% elif event.status == 'Ongoing' %} bg-green-50 text-green-700
+                                {% elif event.status == 'Finished' %} bg-gray-100 text-gray-600
+                                {% else %} bg-red-50 text-red-700
+                                {% endif %}">
+                                {{ event.status }}
+                            </span>
+                        </td>
+
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            {% with ea=event.event_artists.first %}
+                            <button onclick="openEditEventModal(
+                                '{{ event.id }}',
+                                '{{ event.title|escapejs }}',
+                                '{{ event.description|escapejs }}',
+                                '{{ event.category|escapejs }}',
+                                '{{ event.status|escapejs }}',
+                                '{{ event.start_date|date:"Y-m-d\\TH:i" }}',
+                                '{{ event.end_date|date:"Y-m-d\\TH:i" }}',
+                                '{{ event.venue.id }}',
+                                '{% if ea %}{{ ea.artist.name|escapejs }}{% endif %}'
+                            )"
+                                    class="inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Edit
+                            </button>
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="mt-4 text-sm text-gray-500">Belum ada event yang ditemukan.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- CREATE MODAL -->
+<div id="createEventModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('createEventModal')"></div>
+
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-900">Tambah Event Baru</h3>
+            <button onclick="closeModal('createEventModal')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form method="post" action="{% url 'ticketing:create_event' %}">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Judul Acara <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="title" required placeholder="cth. Konser Melodi Senja"
+                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Deskripsi
+                </label>
+                <textarea name="description" rows="3" placeholder="Deskripsi singkat acara"
+                          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Kategori <span class="text-red-500">*</span>
+                    </label>
+                    <select name="category" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for value, label in category_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Status <span class="text-red-500">*</span>
+                    </label>
+                    <select name="status" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Venue <span class="text-red-500">*</span>
+                    </label>
+                    <select name="venue" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for venue in venues %}
+                            <option value="{{ venue.id }}">{{ venue.name }} — {{ venue.city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Artist <span class="text-red-500">*</span>
+                    </label>
+                    <select name="artist" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for artist in artists %}
+                            <option value="{{ artist.name }}">{{ artist.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Tanggal & Waktu Mulai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="datetime-local" name="start_date" required
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Tanggal & Waktu Selesai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="datetime-local" name="end_date" required
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeModal('createEventModal')"
+                        class="flex-1 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition">
+                    Tambah Event
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editEventModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40" onclick="closeModal('editEventModal')"></div>
+
+    <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-bold text-gray-900">Edit Event</h3>
+            <button onclick="closeModal('editEventModal')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form id="editEventForm" method="post">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Judul Acara <span class="text-red-500">*</span>
+                </label>
+                <input id="editTitle" type="text" name="title" required
+                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Deskripsi
+                </label>
+                <textarea id="editDescription" name="description" rows="3"
+                          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Kategori <span class="text-red-500">*</span>
+                    </label>
+                    <select id="editCategory" name="category" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for value, label in category_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Status <span class="text-red-500">*</span>
+                    </label>
+                    <select id="editStatus" name="status" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Venue <span class="text-red-500">*</span>
+                    </label>
+                    <select id="editVenue" name="venue" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for venue in venues %}
+                            <option value="{{ venue.id }}">{{ venue.name }} — {{ venue.city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Artist <span class="text-red-500">*</span>
+                    </label>
+                    <select id="editArtist" name="artist" required
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {% for artist in artists %}
+                            <option value="{{ artist.name }}">{{ artist.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Tanggal & Waktu Mulai <span class="text-red-500">*</span>
+                    </label>
+                    <input id="editStartDate" type="datetime-local" name="start_date" required
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                        Tanggal & Waktu Selesai <span class="text-red-500">*</span>
+                    </label>
+                    <input id="editEndDate" type="datetime-local" name="end_date" required
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeModal('editEventModal')"
+                        class="flex-1 py-2.5 px-4 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function openEditEventModal(id, title, description, category, status, startDate, endDate, venueId, artistId) {
+        document.getElementById('editTitle').value = title;
+        document.getElementById('editDescription').value = description;
+        document.getElementById('editCategory').value = category;
+        document.getElementById('editStatus').value = status;
+        document.getElementById('editStartDate').value = startDate;
+        document.getElementById('editEndDate').value = endDate;
+        document.getElementById('editVenue').value = venueId;
+        document.getElementById('editArtist').value = artistId;
+        document.getElementById('editEventForm').action = '/events/' + id + '/edit/';
+        openModal('editEventModal');
+    }
+</script>
+{% endblock %}

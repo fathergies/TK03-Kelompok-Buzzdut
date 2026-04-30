@@ -1,14 +1,18 @@
 import uuid
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.utils.dateparse import parse_datetime
 from django.contrib.auth.decorators import login_required
-from django.db import models
+from django.db import models, transaction, IntegrityError
 from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import ArtistForm, SeatForm, TicketCategoryForm, TicketForm
-from .models import Artist, Event, HasRelationship, Seat, Ticket, Ticket_Category, Venue
+
+from .forms import ArtistForm, EventForm, SeatForm, TicketCategoryForm, TicketForm
+from .models import Artist, Event, Event_Artist, HasRelationship, Seat, Ticket, Ticket_Category
+from ticketing.models import Venue
 
 # =============================================================================
 # Helper: Role Checks
@@ -20,6 +24,52 @@ def _is_admin(user):
 
 def _is_admin_or_organizer(user):
     return user.is_authenticated and user.role in ('ADMIN', 'ORGANIZER')
+
+def _get_valid_event_organizer(request):
+    UserModel = Event._meta.get_field('organizer').remote_field.model
+
+    organizer = UserModel.objects.filter(pk=request.user.pk).first()
+    if organizer:
+        return organizer
+
+    organizer = UserModel.objects.filter(username=request.user.username).first()
+    if organizer:
+        return organizer
+
+    organizer = UserModel.objects.filter(role__in=['ADMIN', 'ORGANIZER']).first()
+    if organizer:
+        return organizer
+
+    raise ValidationError('Organizer tidak ditemukan di tabel user yang dipakai Event.')
+
+def _get_artist_from_post_value(artist_value):
+    artist_value = str(artist_value).strip()
+
+    if not artist_value:
+        raise ValidationError('Artist wajib dipilih.')
+
+    # Kalau yang terkirim UUID, cari pakai artist_id / pk
+    try:
+        artist_uuid = uuid.UUID(artist_value)
+        artist = Artist.objects.filter(pk=artist_uuid).first()
+
+        if artist:
+            return artist
+
+        artist = Artist.objects.filter(artist_id=artist_uuid).first()
+
+        if artist:
+            return artist
+    except ValueError:
+        pass
+
+    # Kalau yang terkirim nama artist, cari pakai nama
+    artist = Artist.objects.filter(name__iexact=artist_value).first()
+
+    if artist:
+        return artist
+
+    raise ValidationError(f'Artist tidak ditemukan. Value yang terkirim: {artist_value}')
 
 
 # =============================================================================
@@ -122,6 +172,264 @@ def delete_artist(request, pk):
     }
     return render(request, 'ticketing/delete_confirm.html', context)
 
+# =============================================================================
+# Event Views
+# =============================================================================
+
+@login_required
+def event_list(request):
+    """R - Event: semua user login bisa melihat daftar event."""
+    events = (
+        Event.objects
+        .select_related('venue', 'organizer')
+        .prefetch_related('event_artists__artist')
+        .all()
+        .order_by('start_date')
+    )
+
+    query = request.GET.get('q', '').strip()
+    venue_filter = request.GET.get('venue', '').strip()
+    artist_filter = request.GET.get('artist', '').strip()
+
+    if query:
+        events = events.filter(
+            Q(title__icontains=query) |
+            Q(description__icontains=query) |
+            Q(venue__name__icontains=query) |
+            Q(event_artists__artist__name__icontains=query)
+        ).distinct()
+
+    if venue_filter:
+        events = events.filter(venue_id=venue_filter)
+
+    if artist_filter:
+        events = events.filter(event_artists__artist_id=artist_filter)
+
+    total_events = events.count()
+    scheduled_count = events.filter(status=Event.StatusChoices.SCHEDULED).count()
+    ongoing_count = events.filter(status=Event.StatusChoices.ONGOING).count()
+
+    context = {
+        'events': events,
+        'venues': Venue.objects.all().order_by('name'),
+        'artists': Artist.objects.all().order_by('name'),
+        'query': query,
+        'venue_filter': venue_filter,
+        'artist_filter': artist_filter,
+        'total_events': total_events,
+        'scheduled_count': scheduled_count,
+        'ongoing_count': ongoing_count,
+        'can_manage': _is_admin_or_organizer(request.user),
+        'user_role': request.user.role,
+    }
+
+    return render(request, 'ticketing/event_list.html', context)
+
+
+@login_required
+def event_manage(request):
+    """CU - Event: Admin melihat semua event, Organizer hanya event miliknya."""
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to access this page.")
+
+    events = (
+        Event.objects
+        .select_related('venue', 'organizer')
+        .prefetch_related('event_artists__artist')
+        .all()
+        .order_by('start_date')
+    )
+
+    if request.user.role == 'ORGANIZER':
+        events = events.filter(organizer=request.user)
+
+    query = request.GET.get('q', '').strip()
+    venue_filter = request.GET.get('venue', '').strip()
+    artist_filter = request.GET.get('artist', '').strip()
+
+    if query:
+        events = events.filter(
+            Q(title__icontains=query) |
+            Q(description__icontains=query) |
+            Q(venue__name__icontains=query) |
+            Q(event_artists__artist__name__icontains=query)
+        ).distinct()
+
+    if venue_filter:
+        events = events.filter(venue_id=venue_filter)
+
+    if artist_filter:
+        events = events.filter(event_artists__artist_id=artist_filter)
+
+    context = {
+        'events': events,
+        'venues': Venue.objects.all().order_by('name'),
+        'artists': Artist.objects.all().order_by('name'),
+        'query': query,
+        'venue_filter': venue_filter,
+        'artist_filter': artist_filter,
+        'total_events': events.count(),
+        'scheduled_count': events.filter(status=Event.StatusChoices.SCHEDULED).count(),
+        'ongoing_count': events.filter(status=Event.StatusChoices.ONGOING).count(),
+        'finished_count': events.filter(status=Event.StatusChoices.FINISHED).count(),
+        'category_choices': Event.CategoryChoices.choices,
+        'status_choices': Event.StatusChoices.choices,
+        'can_manage': True,
+        'user_role': request.user.role,
+    }
+
+    return render(request, 'ticketing/event_manage.html', context)
+
+
+@login_required
+def create_event(request):
+    """Create Event: Admin dan Organizer."""
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    if request.method != 'POST':
+        return redirect('ticketing:event_manage')
+
+    try:
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        category = request.POST.get('category', '').strip()
+        status = request.POST.get('status', '').strip()
+        venue_id = request.POST.get('venue', '').strip()
+        artist_id = request.POST.get('artist', '').strip()
+        start_date = parse_datetime(request.POST.get('start_date', ''))
+        end_date = parse_datetime(request.POST.get('end_date', ''))
+
+        if not title:
+            raise ValidationError('Judul acara wajib diisi.')
+
+        if not venue_id:
+            raise ValidationError('Venue wajib dipilih.')
+
+        if not artist_id:
+            raise ValidationError('Artist wajib dipilih.')
+
+        if not start_date or not end_date:
+            raise ValidationError('Tanggal mulai dan tanggal selesai wajib diisi.')
+
+        if end_date <= start_date:
+            raise ValidationError('Tanggal selesai harus setelah tanggal mulai.')
+
+        venue = Venue.objects.get(pk=venue_id)
+        artist = _get_artist_from_post_value(artist_id)
+
+        organizer = _get_valid_event_organizer(request)
+
+        with transaction.atomic():
+            event = Event.objects.create(
+                title=title,
+                description=description,
+                category=category,
+                status=status,
+                venue=venue,
+                organizer=organizer,
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+            Event_Artist.objects.create(
+                event_id=event.id,
+                artist_id=artist.artist_id,
+                role='Main Performer'
+            )
+
+        messages.success(request, 'Event berhasil ditambahkan.')
+
+    except Venue.DoesNotExist:
+        messages.error(request, 'Event gagal ditambahkan: venue tidak ditemukan.')
+    except ValidationError as e:
+        messages.error(request, f'Event gagal ditambahkan: {e.messages[0]}')
+    except IntegrityError as e:
+        messages.error(request, f'Event gagal ditambahkan: database relation error ({str(e)}).')
+    except Exception as e:
+        messages.error(request, f'Event gagal ditambahkan: {str(e)}')
+
+    return redirect('ticketing:event_manage')
+
+
+@login_required
+def update_event(request, pk):
+    """Update Event: Admin semua event, Organizer hanya event miliknya."""
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    event = get_object_or_404(Event, pk=pk)
+
+    if request.user.role == 'ORGANIZER' and event.organizer_id != request.user.id:
+        return HttpResponseForbidden("Organizer hanya dapat mengubah event miliknya sendiri.")
+
+    if request.method != 'POST':
+        return redirect('ticketing:event_manage')
+
+    try:
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        category = request.POST.get('category', '').strip()
+        status = request.POST.get('status', '').strip()
+        venue_id = request.POST.get('venue', '').strip()
+        artist_id = request.POST.get('artist', '').strip()
+        start_date = parse_datetime(request.POST.get('start_date', ''))
+        end_date = parse_datetime(request.POST.get('end_date', ''))
+
+        if not title:
+            raise ValidationError('Judul acara wajib diisi.')
+
+        if not venue_id:
+            raise ValidationError('Venue wajib dipilih.')
+
+        if not artist_id:
+            raise ValidationError('Artist wajib dipilih.')
+
+        if not start_date or not end_date:
+            raise ValidationError('Tanggal mulai dan tanggal selesai wajib diisi.')
+
+        if end_date <= start_date:
+            raise ValidationError('Tanggal selesai harus setelah tanggal mulai.')
+
+        venue = Venue.objects.get(pk=venue_id)
+        artist = _get_artist_from_post_value(artist_id)
+
+        event.title = title
+        event.description = description
+        event.category = category
+        event.status = status
+        event.venue = venue
+        event.start_date = start_date
+        event.end_date = end_date
+        event.save()
+
+        with transaction.atomic():
+            event.title = title
+            event.description = description
+            event.category = category
+            event.status = status
+            event.venue = venue
+            event.start_date = start_date
+            event.end_date = end_date
+            event.save()
+
+            Event_Artist.objects.filter(event=event).delete()
+            Event_Artist.objects.create(
+                event_id=event.id,
+                artist_id=artist.artist_id,
+                role='Main Performer'
+            )
+
+        messages.success(request, 'Event berhasil diperbarui.')
+
+    except Venue.DoesNotExist:
+        messages.error(request, 'Event gagal diperbarui: venue tidak ditemukan.')
+    except ValidationError as e:
+        messages.error(request, f'Event gagal diperbarui: {e.messages[0]}')
+    except Exception as e:
+        messages.error(request, f'Event gagal diperbarui: {str(e)}')
+
+    return redirect('ticketing:event_manage')
 
 # =============================================================================
 # Ticket Category Views
