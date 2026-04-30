@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils.dateparse import parse_datetime
 from django.contrib.auth.decorators import login_required
 from django.db import models, transaction, IntegrityError
-from django.db.models import Q
+from django.db.models import Q, Min
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -182,7 +182,8 @@ def event_list(request):
     events = (
         Event.objects
         .select_related('venue', 'organizer')
-        .prefetch_related('event_artists__artist')
+        .prefetch_related('event_artists__artist', 'ticket_categories')
+        .annotate(min_price=Min('ticket_categories__price'))
         .all()
         .order_by('start_date')
     )
