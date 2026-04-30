@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'ticketing',
     'authentication',
     'core',
+    'orders',
+    'promotions',
 ]
 
 MIDDLEWARE = [
