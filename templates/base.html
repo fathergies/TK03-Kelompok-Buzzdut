@@ -40,22 +40,21 @@
                     </button>
                     {% endif %}
                     <a href="{% if user.is_authenticated %}{% url 'core:dashboard' %}{% else %}/{% endif %}" class="flex items-center space-x-2 text-white text-lg font-bold tracking-tight">
-                        <span class="bg-blue-600 text-white rounded-lg w-8 h-8 flex items-center justify-center text-xs font-bold">TT</span>
-                        <span>TikTakTuk</span>
+                        <span class="text-xl">TikTakTuk</span>
                     </a>
                 </div>
 
                 <!-- Desktop Nav Links -->
-                <div class="hidden lg:flex lg:items-center lg:space-x-0.5">
+                <div class="hidden lg:flex lg:items-center lg:space-x-2">
                     {% if user.is_authenticated %}
                         {# ===== CUSTOMER NAV ===== #}
                         {% if user.role == 'CUSTOMER' %}
                             <a href="{% url 'core:dashboard' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Dashboard</a>
-                            <a href="{% url 'ticketing:ticket_list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Tiket Saya</a>
-                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Pesanan</a>
-                            <a href="{% url 'ticketing:event_list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Cari Event</a>
-                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Promosi</a>
-                            <a href="{% url 'venue_list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Venue</a>
+                            <a href="{% url 'ticketing:ticket_list' %}" class="nav-link px-3 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Tiket Saya</a>
+                            <a href="{% url 'orders:order_list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Pesanan</a>
+                            <a href="{% url 'events:event_list' %}" class="nav-link px-3 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Cari Event</a>
+                            <a href="{% url 'promotions:promotion_list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Promosi</a>
+                            <a href="{% url 'venue_list' %}" class="nav-link px-3 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Venue</a>
                             <a href="{% url 'ticketing:show_artists' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Artis</a>
                         {% endif %}
                     {% endif %}
@@ -104,9 +103,9 @@
                 {% if user.is_authenticated and user.role == 'CUSTOMER' %}
                     <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
                     <a href="{% url 'ticketing:ticket_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Tiket Saya</a>
-                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
-                    <a href="{% url 'ticketing:event_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
-                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Promosi</a>
+                    <a href="{% url 'orders:order_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
+                    <a href="{% url 'events:event_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
+                    <a href="{% url 'promotions:promotion_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Promosi</a>
                     <a href="{% url 'venue_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Venue</a>
                     <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Artis</a>
                 {% endif %}
@@ -162,8 +161,7 @@
                 <a href="#" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Profile</a>
             {% elif user.role == 'ORGANIZER' %}
                 <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Dashboard</a>
-                <a href="{% url 'ticketing:event_manage' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Event Saya</a>
-
+                <a href="{% url 'events:event_list' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Event Saya</a>
                 <div class="pt-4 pb-1"><p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Manajemen</p></div>
                 <a href="{% url 'venue_list' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Venue</a>
                 <a href="{% url 'ticketing:seat_list' %}" class="block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">Manajemen Kursi</a>

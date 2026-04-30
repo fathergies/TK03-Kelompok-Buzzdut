@@ -23,4 +23,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('', include('ticketing.urls')),
     path('venue/', include('venue.urls')),
+    path('events/', include('events.urls')),
+    path('orders/', include('orders.urls')),
+    path('promotions/', include('promotions.urls')),
 ]
