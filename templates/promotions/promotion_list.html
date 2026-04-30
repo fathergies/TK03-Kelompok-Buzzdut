@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Promosi{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <div class="page-header">
+    <h1>Promosi</h1>
+    <p>Gunakan promo aktif untuk mendapatkan diskon tiket.</p>
+  </div>
+
+  {% if promotions %}
+    <div class="card-grid">
+      {% for promotion in promotions %}
+        <a href="{% url 'promotions:detail' promotion.promotion_id %}" class="card-link">
+          <div class="card">
+            <div class="card-header">
+              <h3>{{ promotion.promo_code }}</h3>
+              <span class="badge">Aktif</span>
+            </div>
+
+            <p class="muted">{{ promotion.discount_type }}</p>
+
+            <h2>
+              {% if promotion.discount_type == "PERCENTAGE" %}
+                {{ promotion.discount_value }}%
+              {% else %}
+                Rp{{ promotion.discount_value }}
+              {% endif %}
+            </h2>
+
+            <p>Berlaku sampai {{ promotion.end_date|date:"d M Y" }}</p>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2>Belum ada promosi aktif</h2>
+      <p>Cek lagi nanti untuk promo terbaru.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

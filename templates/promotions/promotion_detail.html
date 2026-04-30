@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Promosi{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <div class="page-header">
+    <h1>Detail Promosi</h1>
+    <p>Informasi lengkap kode promo.</p>
+  </div>
+
+  <div class="card">
+    <h2>{{ promotion.promo_code }}</h2>
+
+    <div class="detail-row">
+      <span>Tipe Diskon</span>
+      <strong>{{ promotion.discount_type }}</strong>
+    </div>
+
+    <div class="detail-row">
+      <span>Nilai Diskon</span>
+      <strong>
+        {% if promotion.discount_type == "PERCENTAGE" %}
+          {{ promotion.discount_value }}%
+        {% else %}
+          Rp{{ promotion.discount_value }}
+        {% endif %}
+      </strong>
+    </div>
+
+    <div class="detail-row">
+      <span>Mulai</span>
+      <strong>{{ promotion.start_date|date:"d M Y" }}</strong>
+    </div>
+
+    <div class="detail-row">
+      <span>Berakhir</span>
+      <strong>{{ promotion.end_date|date:"d M Y" }}</strong>
+    </div>
+
+    <div class="detail-row">
+      <span>Batas Penggunaan</span>
+      <strong>{{ promotion.usage_limit }}</strong>
+    </div>
+  </div>
+</section>
+{% endblock %}

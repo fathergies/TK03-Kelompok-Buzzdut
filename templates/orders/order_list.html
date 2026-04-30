@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Pesanan Saya{% endblock %}
+
+{% block content %}
+<section class="page-section">
+  <div class="page-header">
+    <h1>Pesanan Saya</h1>
+    <p>Lihat riwayat pesanan tiket Anda.</p>
+  </div>
+
+  {% if orders %}
+    <div class="card-grid">
+      {% for order in orders %}
+        <a href="{% url 'orders:detail' order.order_id %}" class="card-link">
+          <div class="card">
+            <div class="card-header">
+              <h3>Order #{{ order.order_id|slice:":8" }}</h3>
+              <span class="badge">{{ order.payment_status }}</span>
+            </div>
+
+            <p class="muted">{{ order.order_date|date:"d M Y, H:i" }}</p>
+            <h2>Rp{{ order.total_amount }}</h2>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2>Belum ada pesanan</h2>
+      <p>Pesanan tiket Anda akan muncul di sini.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

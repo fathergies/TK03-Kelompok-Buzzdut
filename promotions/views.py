@@ -1,28 +1,31 @@
-from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
+
 from .models import Promotion
-from django.db.models import Count, Q
 
+
+@login_required
 def promotion_list(request):
-    promos = Promotion.objects.all()
-    
-    # Statistik Ringkasan
-    stats = {
-        'total_promo': promos.count(),
-        'total_usage': sum(p.current_usage for p in promos),
-        'total_persentase': promos.filter(discount_type='Persentase').count()
-    }
-    
-    # Logic Filter & Search
-    search_query = request.GET.get('search', '')
-    type_filter = request.GET.get('type', '')
-    
-    if search_query:
-        promos = promos.filter(code__icontains=search_query)
-    if type_filter:
-        promos = promos.filter(discount_type=type_filter)
+    today = timezone.localdate()
 
-    return render(request, 'promotions/promotion_list.html', {
-        'promos': promos, 
-        'stats': stats,
-        'user_role': getattr(request.user, 'role', 'GUEST')
-    })
+    promotions = (
+        Promotion.objects
+        .filter(start_date__lte=today, end_date__gte=today)
+        .order_by("end_date", "promo_code")
+    )
+
+    context = {
+        "promotions": promotions,
+    }
+    return render(request, "promotions/promotion_list.html", context)
+
+
+@login_required
+def promotion_detail(request, promotion_id):
+    promotion = get_object_or_404(Promotion, promotion_id=promotion_id)
+
+    context = {
+        "promotion": promotion,
+    }
+    return render(request, "promotions/promotion_detail.html", context)

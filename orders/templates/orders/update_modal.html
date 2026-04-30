@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="max-w-md mx-auto bg-white p-6 rounded shadow">
+
+    <h3 class="text-lg font-bold mb-4">Update Status Order</h3>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <label class="block mb-2">Payment Status</label>
+        {{ form.payment_status }}
+
+        <div class="flex justify-end gap-2 mt-4">
+            <a href="{% url 'orders:list' %}" 
+               class="px-4 py-2 bg-gray-200 rounded">Batal</a>
+
+            <button class="px-4 py-2 bg-blue-600 text-white rounded">
+                Update
+            </button>
+        </div>
+    </form>
+
+</div>
+
+{% endblock %}

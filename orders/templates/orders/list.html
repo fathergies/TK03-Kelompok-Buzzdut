@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h2 class="text-2xl font-bold mb-6">Daftar Order</h2>
+
+<!-- STATS -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">TOTAL ORDER</p>
+        <p class="text-xl font-bold">{{ total_orders }}</p>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">LUNAS</p>
+        <p class="text-xl font-bold text-green-600">{{ paid }}</p>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">PENDING</p>
+        <p class="text-xl font-bold text-yellow-500">{{ pending }}</p>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+        <p class="text-gray-500">TOTAL REVENUE</p>
+        <p class="text-xl font-bold">
+            Rp {{ total_revenue }}
+        </p>
+    </div>
+</div>
+
+<!-- TABLE -->
+<div class="bg-white rounded shadow p-4">
+
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="border-b text-gray-500">
+                <th class="text-left py-2">Order ID</th>
+                <th class="text-left">Pelanggan</th>
+                <th class="text-left">Tanggal</th>
+                <th class="text-left">Status</th>
+                <th class="text-left">Total</th>
+                {% if user.is_staff %}
+                <th>Aksi</th>
+                {% endif %}
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for o in orders %}
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2">{{ o.id }}</td>
+                <td>{{ o.customer.username }}</td>
+                <td>{{ o.order_date|date:"Y-m-d H:i" }}</td>
+
+                <td>
+                    {% if o.payment_status == 'PAID' %}
+                        <span class="bg-green-100 text-green-600 px-2 py-1 rounded">LUNAS</span>
+                    {% elif o.payment_status == 'PENDING' %}
+                        <span class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded">PENDING</span>
+                    {% else %}
+                        <span class="bg-red-100 text-red-600 px-2 py-1 rounded">DIBATALKAN</span>
+                    {% endif %}
+                </td>
+
+                <td>Rp {{ o.total_amount }}</td>
+
+                {% if user.is_staff %}
+                <td class="space-x-2">
+                    <a href="{% url 'orders:update' o.id %}" 
+                       class="text-blue-500">✏️</a>
+
+                    <a href="{% url 'orders:delete' o.id %}" 
+                       class="text-red-500">🗑️</a>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% endblock %}
