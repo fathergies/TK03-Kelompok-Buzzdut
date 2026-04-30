@@ -126,7 +126,7 @@
 
             {% if is_admin_or_organizer %}
             <div class="mt-5 pt-4 border-t border-gray-100 flex items-center gap-2">
-                <button onclick="openEditModal('{{ venue.id }}', '{{ venue.name|escapejs }}', '{{ venue.capacity }}', '{{ venue.city|escapejs }}', '{{ venue.address|escapejs }}')"
+                <button onclick="openEditModal('{{ venue.id }}', '{{ venue.name|escapejs }}', '{{ venue.capacity }}', '{{ venue.city|escapejs }}', '{{ venue.address|escapejs }}', '{{ venue.has_reserved_seating|lower }}')"
                         class="inline-flex items-center px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
                     <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
