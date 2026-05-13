@@ -1,14 +1,11 @@
 from django.contrib.auth.decorators import login_required
-from django.db import models
-from django.db.models import Count, Sum
 from django.shortcuts import render
-
-from ticketing.models import CustomUser, Event, Ticket_Category, Venue
+from basdat_tk03.db import fetch_one
 
 @login_required
 def dashboard(request):
     """Route to the correct dashboard based on user role."""
-    role = request.user.role
+    role = request.user.role if hasattr(request.user, 'role') else 'CUSTOMER'
     if role == 'ADMIN':
         return admin_dashboard(request)
     elif role == 'ORGANIZER':
@@ -18,37 +15,38 @@ def dashboard(request):
 
 
 def admin_dashboard(request):
-    """Admin dashboard with platform statistics."""
-    total_users = CustomUser.objects.count()
-    total_events = Event.objects.count()
-    total_venues = Venue.objects.count()
-
-    # Gross volume from ticket prices * quotas
-    gross_volume = (
-        Ticket_Category.objects.aggregate(
-            total=Sum('price')
-        )['total'] or 0
-    )
-
-    # Venue stats
-    venue_stats = Venue.objects.aggregate(
-        total=Count('id'),
-        max_capacity=models.Max('capacity'),
-    )
+    """Admin dashboard with platform statistics using Raw SQL."""
+    users_stat = fetch_one("SELECT COUNT(*) AS total FROM USER_ACCOUNT;")
+    events_stat = fetch_one("SELECT COUNT(*) AS total FROM EVENT;")
+    venues_stat = fetch_one("SELECT COUNT(*) AS total FROM VENUE;")
+    gross_stat = fetch_one("SELECT SUM(price) AS total FROM TICKET_CATEGORY;")
+    venue_agg_stat = fetch_one("SELECT COUNT(venue_id) AS total, MAX(capacity) AS max_capacity FROM VENUE;")
 
     context = {
-        'total_users': total_users,
-        'total_events': total_events,
-        'total_venues': total_venues,
-        'gross_volume': gross_volume,
-        'venue_max_capacity': venue_stats.get('max_capacity') or 0,
+        'total_users': users_stat['total'] if users_stat else 0,
+        'total_events': events_stat['total'] if events_stat else 0,
+        'total_venues': venues_stat['total'] if venues_stat else 0,
+        'gross_volume': gross_stat['total'] if gross_stat and gross_stat['total'] else 0,
+        'venue_max_capacity': venue_agg_stat['max_capacity'] if venue_agg_stat and venue_agg_stat['max_capacity'] else 0,
     }
     return render(request, 'core/admin.html', context)
 
 
 def organizer_dashboard(request):
-    """Organizer dashboard with their event info."""
-    my_events = Event.objects.filter(organizer=request.user).count()
+    """Organizer dashboard with their event info using Raw SQL."""
+    # Assuming organizer events are linked by organizer_id
+    # We will fetch the organizer_id based on the logged-in user
+    # If the user has a custom attribute or just by username:
+    user_id = request.user.pk
+    
+    # We first find the organizer's UUID based on the user's UUID
+    org_stat = fetch_one("SELECT organizer_id FROM ORGANIZER WHERE user_id = %s;", [str(user_id)])
+    my_events = 0
+    if org_stat:
+        event_stat = fetch_one("SELECT COUNT(*) AS total FROM EVENT WHERE organizer_id = %s;", [org_stat['organizer_id']])
+        if event_stat:
+            my_events = event_stat['total']
+            
     context = {
         'my_events': my_events,
     }
