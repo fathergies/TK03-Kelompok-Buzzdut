@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Hapus Promo — TikTakTuk{% endblock %}
+
+{% block content %}
+<!-- Full-page overlay background -->
+<div class="fixed inset-0 bg-black/30 z-40 flex items-center justify-center p-4 backdrop-blur-sm">
+    <!-- Modal Card -->
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-50 overflow-hidden">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center px-6 pt-6 pb-3">
+            <h2 class="text-lg font-bold text-red-600">Hapus Promo</h2>
+            <a href="{% url 'promotions:list' %}"
+               class="text-gray-400 hover:text-gray-600 transition p-1 rounded-md hover:bg-gray-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </a>
+        </div>
+
+        <!-- Body -->
+        <form method="POST" class="px-6 pb-6">
+            {% csrf_token %}
+            <p class="text-sm text-gray-600 mb-6 leading-relaxed">
+                Apakah Anda yakin ingin menghapus kode promo ini?<br>
+                Tindakan ini tidak dapat dibatalkan.
+            </p>
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-3">
+                <a href="{% url 'promotions:list' %}"
+                   class="px-5 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                    Batal
+                </a>
+                <button type="submit"
+                        class="px-5 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white transition shadow-sm">
+                    Hapus
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}
