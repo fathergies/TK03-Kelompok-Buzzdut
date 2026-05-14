@@ -1,4 +1,4 @@
-from django.contrib.auth.decorators import login_required
+from basdat_tk03.auth import login_required
 from django.shortcuts import render
 from basdat_tk03.db import fetch_one
 
@@ -54,5 +54,50 @@ def organizer_dashboard(request):
 
 
 def customer_dashboard(request):
-    """Customer dashboard with quick access menus."""
-    return render(request, 'core/customer.html')
+    """Customer dashboard with real statistics."""
+    user_id = request.user.pk
+    
+    # Find customer id
+    customer = fetch_one("SELECT customer_id FROM CUSTOMER WHERE user_id = %s", [str(user_id)])
+    
+    active_tickets = 0
+    total_orders = 0
+    upcoming_events = 0
+
+    if customer:
+        cust_id = customer['customer_id']
+        
+        # Active tickets
+        t_stat = fetch_one("""
+            SELECT COUNT(t.ticket_id) as total 
+            FROM TICKET t
+            JOIN "ORDER" o ON t.torder_id = o.order_id
+            WHERE o.customer_id = %s AND t.status = 'Valid'
+        """, [cust_id])
+        if t_stat: active_tickets = t_stat['total']
+
+        # Total orders
+        o_stat = fetch_one("""
+            SELECT COUNT(*) as total 
+            FROM "ORDER" 
+            WHERE customer_id = %s
+        """, [cust_id])
+        if o_stat: total_orders = o_stat['total']
+
+        # Upcoming events
+        e_stat = fetch_one("""
+            SELECT COUNT(DISTINCT e.event_id) as total 
+            FROM TICKET t
+            JOIN "ORDER" o ON t.torder_id = o.order_id
+            JOIN TICKET_CATEGORY tc ON t.tcategory_id = tc.category_id
+            JOIN EVENT e ON tc.tevent_id = e.event_id
+            WHERE o.customer_id = %s AND t.status = 'Valid' AND e.event_datetime > CURRENT_TIMESTAMP
+        """, [cust_id])
+        if e_stat: upcoming_events = e_stat['total']
+
+    context = {
+        'active_tickets': active_tickets,
+        'total_orders': total_orders,
+        'upcoming_events': upcoming_events,
+    }
+    return render(request, 'core/customer.html', context)

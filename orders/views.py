@@ -1,112 +1,164 @@
 from decimal import Decimal
-
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.db.models import Q, Sum
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
+from basdat_tk03.auth import login_required
+from basdat_tk03.db import fetch_all, fetch_one, execute_query
 from django.utils import timezone
-
-from .models import Order
-from promotions.models import Promotion
-from ticketing.models import Event, HasRelationship, Seat, Ticket, Ticket_Category
+import uuid
 
 @login_required
 def order_list(request):
     user = request.user
-    orders = Order.objects.all().order_by('-order_date')
+    role = user.role.upper()
 
-    # R-Order: Filter berdasarkan Role
-    if user.role == 'CUSTOMER':
-        orders = orders.filter(customer=user)
-    elif user.role == 'ORGANIZER':
-        organizer_order_ids = (
-            Ticket.objects
-            .filter(tcategory__tevent__organizer=user)
-            .values_list('torder_id', flat=True)
-            .distinct()
-        )
-        orders = orders.filter(id__in=organizer_order_ids)
-
-    # Statistik Ringkasan
-    stats = {
-        'total_order': orders.count(),
-        'lunas': orders.filter(payment_status='Lunas').count(),
-        'pending': orders.filter(payment_status='Pending').count(),
-        'total_revenue': orders.filter(payment_status='Lunas').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    }
-
-    # Search & Filter
     search = request.GET.get('search', '')
     status = request.GET.get('status', '')
+
+    base_query = """
+        SELECT o.order_id as id, o.order_id, o.order_date, o.payment_status, o.total_amount,
+               c.full_name as customer_name, ua.username as customer_username
+        FROM "ORDER" o
+        JOIN CUSTOMER c ON o.customer_id = c.customer_id
+        JOIN USER_ACCOUNT ua ON c.user_id = ua.user_id
+        WHERE 1=1
+    """
+    params = []
+
+    if role == 'CUSTOMER':
+        base_query += " AND c.user_id = %s"
+        params.append(user.pk)
+    elif role == 'ORGANIZER':
+        # Organizer only sees orders for their events
+        base_query += """
+            AND o.order_id IN (
+                SELECT t.torder_id 
+                FROM TICKET t
+                JOIN TICKET_CATEGORY tc ON t.tcategory_id = tc.category_id
+                JOIN EVENT e ON tc.tevent_id = e.event_id
+                JOIN ORGANIZER org ON e.organizer_id = org.organizer_id
+                WHERE org.user_id = %s
+            )
+        """
+        params.append(user.pk)
+
     if search:
-        orders = orders.filter(
-            Q(id__icontains=search) |
-            Q(customer__username__icontains=search) |
-            Q(customer__first_name__icontains=search) |
-            Q(customer__last_name__icontains=search)
-        )
+        base_query += " AND (o.order_id::text ILIKE %s OR ua.username ILIKE %s OR c.full_name ILIKE %s)"
+        params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+
     if status:
-        orders = orders.filter(payment_status=status)
+        base_query += " AND o.payment_status = %s"
+        params.append(status)
+
+    base_query += " ORDER BY o.order_date DESC"
+
+    orders = fetch_all(base_query, params)
+
+    # Stats
+    total_order = len(orders)
+    lunas = sum(1 for o in orders if o['payment_status'] == 'Paid')
+    pending = sum(1 for o in orders if o['payment_status'] == 'Pending')
+    total_revenue = sum(o['total_amount'] for o in orders if o['payment_status'] == 'Paid')
+
+    stats = {
+        'total_order': total_order,
+        'lunas': lunas,
+        'pending': pending,
+        'total_revenue': total_revenue
+    }
+
+    # Format objects for template
+    for o in orders:
+        o['pk'] = o['order_id']
+        class MockCustomer:
+            pass
+        c = MockCustomer()
+        c.username = o['customer_username']
+        # The template might use first_name / last_name, we just have full_name
+        name_parts = o['customer_name'].split(' ', 1)
+        c.first_name = name_parts[0]
+        c.last_name = name_parts[1] if len(name_parts) > 1 else ''
+        o['customer'] = c
+
+    status_choices = [('Pending', 'Pending'), ('Paid', 'Lunas'), ('Cancelled', 'Dibatalkan')]
 
     return render(request, 'orders/order_list.html', {
         'orders': orders,
         'stats': stats,
-        'status_choices': Order.STATUS_CHOICES,
+        'status_choices': status_choices,
     })
-
 
 def _generate_ticket_code(order_id, index):
     prefix = str(order_id).split('-')[0].upper()
     return f"TTK-{prefix}-{index + 1:03d}"
 
-
-def _calculate_discount(promotion, subtotal):
-    if not promotion:
-        return Decimal('0')
-    if promotion.discount_type == 'Persentase':
-        discount = subtotal * (promotion.discount_value / Decimal('100'))
-    else:
-        discount = promotion.discount_value
-    return min(discount, subtotal)
-
-
-def _promotion_usage(promotion):
-    return Order.objects.filter(promotion=promotion).count()
-
-
-def _category_rows(event):
-    rows = []
-    for category in event.ticket_categories.all().order_by('-price', 'category_name'):
-        sold_count = Ticket.objects.filter(tcategory=category).count()
-        remaining = max(category.quota - sold_count, 0)
-        rows.append({
-            'category': category,
-            'remaining': remaining,
-        })
-    return rows
-
-
 @login_required
 def checkout(request, event_id):
+    event_id = str(event_id)
     if request.user.role != 'CUSTOMER':
         messages.error(request, 'Checkout hanya tersedia untuk pelanggan.')
         return redirect('ticketing:show_ticket_categories')
 
-    event = get_object_or_404(
-        Event.objects.select_related('venue').prefetch_related('ticket_categories'),
-        pk=event_id,
-    )
-    categories = _category_rows(event)
+    event = fetch_one("""
+        SELECT e.*, v.venue_name, v.seating_type
+        FROM EVENT e 
+        JOIN VENUE v ON e.venue_id = v.venue_id 
+        WHERE e.event_id = %s
+    """, [event_id])
+    
+    if not event:
+        messages.error(request, 'Event tidak ditemukan.')
+        return redirect('events:event_list')
+
+    # Mock venue
+    class MockVenue:
+        def __init__(self, name, seating_type):
+            self.name = name
+            self.has_reserved_seating = seating_type == 'reserved'
+    event['venue'] = MockVenue(event['venue_name'], event['seating_type'])
+    event['pk'] = event['event_id']
+
+    # Categories
+    categories_raw = fetch_all("SELECT * FROM TICKET_CATEGORY WHERE tevent_id = %s ORDER BY price DESC, category_name", [event_id])
+    categories = []
+    for cat in categories_raw:
+        sold = fetch_one("SELECT COUNT(*) as count FROM TICKET WHERE tcategory_id = %s", [cat['category_id']])['count']
+        remaining = max(cat['quota'] - sold, 0)
+        
+        # Template compatibility
+        cat['pk'] = cat['category_id']
+        categories.append({
+            'category': cat,
+            'remaining': remaining
+        })
+        
     default_category = categories[0]['category'] if categories else None
-    available_seats = Seat.objects.filter(venue=event.venue).exclude(
-        seat_id__in=HasRelationship.objects.values_list('seat_id', flat=True)
-    ).order_by('section', 'row_number', 'seat_number')
-    active_promos = [
-        promo for promo in Promotion.objects.order_by('code')
-        if promo.start_date <= timezone.localdate() <= promo.end_date
-        and _promotion_usage(promo) < promo.usage_limit
-    ]
+
+    # Available seats
+    seats_raw = fetch_all("""
+        SELECT s.* 
+        FROM SEAT s
+        LEFT JOIN HAS_RELATIONSHIP hr ON s.seat_id = hr.seat_id
+        WHERE s.venue_id = %s AND hr.seat_id IS NULL
+        ORDER BY s.section, s.row_number, s.seat_number
+    """, [event['venue_id']])
+    
+    for s in seats_raw:
+        s['pk'] = s['seat_id']
+
+    available_seats = seats_raw
+
+    # Active promos
+    today = timezone.localdate()
+    promos_raw = fetch_all("""
+        SELECT * FROM PROMOTION 
+        WHERE start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE
+        ORDER BY promo_code
+    """)
+    active_promos = []
+    for promo in promos_raw:
+        usage = fetch_one("SELECT COUNT(*) as count FROM ORDER_PROMOTION WHERE promotion_id = %s", [promo['promotion_id']])['count']
+        if usage < promo['usage_limit']:
+            active_promos.append(promo)
 
     if request.method == 'POST':
         try:
@@ -115,72 +167,117 @@ def checkout(request, event_id):
             quantity = 1
 
         promo_code = request.POST.get('promo_code', '').strip()
-        category = get_object_or_404(Ticket_Category, pk=request.POST.get('category_id'), tevent=event)
-        sold_count = Ticket.objects.filter(tcategory=category).count()
-        available_quota = max(category.quota - sold_count, 0)
+        category_id = request.POST.get('category_id')
+        
+        category = fetch_one("SELECT * FROM TICKET_CATEGORY WHERE category_id = %s AND tevent_id = %s", [category_id, event_id])
+        if not category:
+            messages.error(request, 'Kategori tidak valid.')
+            return redirect('orders:checkout', event_id=event_id)
+            
+        sold = fetch_one("SELECT COUNT(*) as count FROM TICKET WHERE tcategory_id = %s", [category_id])['count']
+        available_quota = max(category['quota'] - sold, 0)
+        
         selected_seat_ids = request.POST.getlist('seat_ids')
         promotion = None
-        if quantity < 1:
-            messages.error(request, 'Jumlah tiket minimal 1.')
-            return redirect('orders:checkout', event_id=event.pk)
-        if quantity > 10:
-            messages.error(request, 'Maksimal 10 tiket per transaksi.')
-            return redirect('orders:checkout', event_id=event.pk)
+        
+        if quantity < 1 or quantity > 10:
+            messages.error(request, 'Jumlah tiket harus 1-10.')
+            return redirect('orders:checkout', event_id=event_id)
+            
         if quantity > available_quota:
             messages.error(request, 'Jumlah tiket melebihi kuota tersedia.')
-            return redirect('orders:checkout', event_id=event.pk)
+            return redirect('orders:checkout', event_id=event_id)
 
-        selected_seats = Seat.objects.none()
-        if event.venue.has_reserved_seating:
+        selected_seats = []
+        if event['seating_type'] == 'reserved':
             if len(selected_seat_ids) > quantity:
                 messages.error(request, 'Jumlah kursi tidak boleh melebihi jumlah tiket.')
-                return redirect('orders:checkout', event_id=event.pk)
-            selected_seats = Seat.objects.filter(seat_id__in=selected_seat_ids, venue=event.venue)
-            if selected_seats.count() != len(selected_seat_ids):
+                return redirect('orders:checkout', event_id=event_id)
+                
+            for sid in selected_seat_ids:
+                seat = fetch_one("SELECT * FROM SEAT WHERE seat_id = %s AND venue_id = %s", [sid, event['venue_id']])
+                if not seat:
+                    messages.error(request, 'Kursi tidak valid.')
+                    return redirect('orders:checkout', event_id=event_id)
+                selected_seats.append(seat)
+                
+            if len(selected_seats) != len(selected_seat_ids):
                 messages.error(request, 'Kursi yang dipilih tidak valid.')
-                return redirect('orders:checkout', event_id=event.pk)
-            occupied_count = HasRelationship.objects.filter(seat_id__in=selected_seat_ids).count()
-            if occupied_count:
-                messages.error(request, 'Sebagian kursi yang dipilih sudah dipesan.')
-                return redirect('orders:checkout', event_id=event.pk)
+                return redirect('orders:checkout', event_id=event_id)
+                
+            # Check occupied
+            placeholders = ', '.join(['%s'] * len(selected_seat_ids))
+            if placeholders:
+                occupied = fetch_one(f"SELECT COUNT(*) as count FROM HAS_RELATIONSHIP WHERE seat_id IN ({placeholders})", selected_seat_ids)['count']
+                if occupied > 0:
+                    messages.error(request, 'Sebagian kursi sudah dipesan.')
+                    return redirect('orders:checkout', event_id=event_id)
 
         if promo_code:
-            today = timezone.localdate()
-            promotion = Promotion.objects.filter(code__iexact=promo_code).first()
+            promotion = fetch_one("SELECT * FROM PROMOTION WHERE promo_code ILIKE %s", [promo_code])
             if not promotion:
                 messages.error(request, 'Kode promo tidak ditemukan.')
-                return redirect('orders:checkout', event_id=event.pk)
-            if not (promotion.start_date <= today <= promotion.end_date):
+                return redirect('orders:checkout', event_id=event_id)
+                
+            p_start = str(promotion['start_date'])[:10]
+            p_end = str(promotion['end_date'])[:10]
+            t_day = str(today)[:10]
+
+            if p_start > t_day or p_end < t_day:
                 messages.error(request, 'Kode promo belum aktif atau sudah berakhir.')
-                return redirect('orders:checkout', event_id=event.pk)
-            if _promotion_usage(promotion) >= promotion.usage_limit:
-                messages.error(request, 'Kuota penggunaan promo sudah habis.')
-                return redirect('orders:checkout', event_id=event.pk)
+                return redirect('orders:checkout', event_id=event_id)
+                
+            usage = fetch_one("SELECT COUNT(*) as count FROM ORDER_PROMOTION WHERE promotion_id = %s", [promotion['promotion_id']])['count']
+            if usage >= promotion['usage_limit']:
+                messages.error(request, 'Kuota promo habis.')
+                return redirect('orders:checkout', event_id=event_id)
 
-        subtotal = category.price * quantity
-        discount = _calculate_discount(promotion, subtotal)
+        subtotal = category['price'] * quantity
+        discount = Decimal('0')
+        if promotion:
+            if promotion['discount_type'] == 'PERCENTAGE':
+                discount = subtotal * (promotion['discount_value'] / Decimal('100'))
+            else:
+                discount = promotion['discount_value']
+            discount = min(discount, subtotal)
+            
         total_amount = subtotal - discount
+        
+        customer = fetch_one("SELECT customer_id FROM CUSTOMER WHERE user_id = %s", [request.user.pk])
 
-        with transaction.atomic():
-            order = Order.objects.create(
-                customer=request.user,
-                payment_status='Pending',
-                total_amount=total_amount,
-                promotion=promotion,
+        # Transaction simulation manually
+        order_id = str(uuid.uuid4())
+        try:
+            execute_query(
+                'INSERT INTO "ORDER" (order_id, payment_status, total_amount, customer_id) VALUES (%s, %s, %s, %s)',
+                [order_id, 'Pending', total_amount, customer['customer_id']]
             )
-            seats = list(selected_seats)
-            for index in range(quantity):
-                ticket = Ticket.objects.create(
-                    ticket_code=_generate_ticket_code(order.id, index),
-                    tcategory=category,
-                    torder_id=order.id,
-                    status=Ticket.StatusChoices.ACTIVE,
+            
+            if promotion:
+                execute_query(
+                    'INSERT INTO ORDER_PROMOTION (order_promotion_id, promotion_id, order_id) VALUES (%s, %s, %s)',
+                    [str(uuid.uuid4()), promotion['promotion_id'], order_id]
                 )
-                if event.venue.has_reserved_seating and index < len(seats):
-                    HasRelationship.objects.create(ticket=ticket, seat=seats[index])
-
-        messages.success(request, 'Checkout berhasil. Order dibuat dengan status Pending.')
-        return redirect('orders:order_list')
+                
+            for index in range(quantity):
+                ticket_id = str(uuid.uuid4())
+                ticket_code = _generate_ticket_code(order_id, index)
+                execute_query(
+                    'INSERT INTO TICKET (ticket_id, ticket_code, tcategory_id, torder_id, status) VALUES (%s, %s, %s, %s, %s)',
+                    [ticket_id, ticket_code, category['category_id'], order_id, 'Valid']
+                )
+                if event['seating_type'] == 'reserved' and index < len(selected_seats):
+                    execute_query(
+                        'INSERT INTO HAS_RELATIONSHIP (seat_id, ticket_id) VALUES (%s, %s)',
+                        [selected_seats[index]['seat_id'], ticket_id]
+                    )
+            
+            messages.success(request, 'Checkout berhasil. Order dibuat dengan status Pending.')
+            return redirect('orders:order_list')
+        except Exception as e:
+            execute_query('DELETE FROM "ORDER" WHERE order_id = %s', [order_id]) # Rollback
+            messages.error(request, f'Terjadi kesalahan: {e}')
+            return redirect('orders:checkout', event_id=event_id)
 
     return render(request, 'orders/checkout.html', {
         'event': event,
@@ -190,32 +287,31 @@ def checkout(request, event_id):
         'active_promos': active_promos,
     })
 
-
 @login_required
 def update_order(request, pk):
+    pk = str(pk)
     if request.user.role != 'ADMIN':
         messages.error(request, 'Hanya admin yang dapat mengubah order.')
         return redirect('orders:order_list')
-    order = get_object_or_404(Order, pk=pk)
+        
     if request.method == 'POST':
         payment_status = request.POST.get('payment_status')
-        if payment_status in dict(Order.STATUS_CHOICES):
-            order.payment_status = payment_status
-            order.save(update_fields=['payment_status'])
+        if payment_status in ['Pending', 'Paid', 'Cancelled']:
+            execute_query('UPDATE "ORDER" SET payment_status = %s WHERE order_id = %s', [payment_status, pk])
             messages.success(request, 'Status order berhasil diperbarui.')
         else:
             messages.error(request, 'Status order tidak valid.')
     return redirect('orders:order_list')
 
-
 @login_required
 def delete_order(request, pk):
+    pk = str(pk)
     if request.user.role != 'ADMIN':
         messages.error(request, 'Hanya admin yang dapat menghapus order.')
         return redirect('orders:order_list')
-    order = get_object_or_404(Order, pk=pk)
+        
     if request.method == 'POST':
-        Ticket.objects.filter(torder_id=order.id).delete()
-        order.delete()
+        # Rely on CASCADE or delete manually
+        execute_query('DELETE FROM "ORDER" WHERE order_id = %s', [pk])
         messages.success(request, 'Order berhasil dihapus.')
     return redirect('orders:order_list')

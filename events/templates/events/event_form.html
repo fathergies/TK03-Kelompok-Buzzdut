@@ -20,27 +20,32 @@
                 <div class="space-y-6">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">JUDUL ACARA (EVENT_TITLE)</label>
-                        {{ form.title }}
-                        {% if form.title.errors %}<p class="text-red-500 text-xs mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+                        <input type="text" name="title" value="{{ event.title|default:'' }}" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     </div>
                     
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">TANGGAL & WAKTU (DATE & TIME)</label>
-                        {{ form.start_datetime }}
-                        {% if form.start_datetime.errors %}<p class="text-red-500 text-xs mt-1">{{ form.start_datetime.errors.0 }}</p>{% endif %}
+                        <input type="datetime-local" name="start_datetime" value="{{ event.start_date|date:'Y-m-d\TH:i' }}" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     </div>
                     
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">VENUE (VENUE_ID)</label>
-                        {{ form.venue }}
-                        {% if form.venue.errors %}<p class="text-red-500 text-xs mt-1">{{ form.venue.errors.0 }}</p>{% endif %}
+                        <select name="venue" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="">Pilih Venue...</option>
+                            {% for v in venues %}
+                                <option value="{{ v.pk }}" {% if v.pk|stringformat:"s" == event.venue_id|stringformat:"s" %}selected{% endif %}>{{ v.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">ARTIS (EVENT_ARTIST)</label>
-                        {{ form.artists }}
-                        <p class="text-xs text-gray-400 mt-2">{{ form.artists.help_text }}</p>
-                        {% if form.artists.errors %}<p class="text-red-500 text-xs mt-1">{{ form.artists.errors.0 }}</p>{% endif %}
+                        <select name="artists" multiple required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white h-32">
+                            {% for a in artists %}
+                                <option value="{{ a.pk }}" {% if a.pk|stringformat:"s" in current_artist_ids %}selected{% endif %}>{{ a.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-xs text-gray-400 mt-2">Pilih lebih dari satu artis dengan menekan tombol Ctrl/Cmd.</p>
                     </div>
                 </div>
                 
@@ -95,8 +100,7 @@
                     
                     <div class="pt-2">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">DESKRIPSI</label>
-                        {{ form.description }}
-                        {% if form.description.errors %}<p class="text-red-500 text-xs mt-1">{{ form.description.errors.0 }}</p>{% endif %}
+                        <textarea name="description" required rows="4" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">{{ event.description|default:'' }}</textarea>
                     </div>
                 </div>
             </div>

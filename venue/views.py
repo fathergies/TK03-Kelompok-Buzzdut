@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from basdat_tk03.auth import login_required
 from basdat_tk03.db import fetch_all, fetch_one, execute_query
 import uuid
 
@@ -40,6 +40,10 @@ def venue_list(request):
     sql_query += " ORDER BY venue_name ASC;"
     
     venues = fetch_all(sql_query, params)
+    for v in venues:
+        v['id'] = v['venue_id']
+        v['name'] = v['venue_name']
+        v['has_reserved_seating'] = (v['seating_type'] == 'reserved')
 
     cities_result = fetch_all("SELECT DISTINCT city FROM VENUE ORDER BY city ASC;")
     cities = [row['city'] for row in cities_result]
@@ -80,18 +84,22 @@ def venue_create(request):
         return redirect('venue_list')
 
     if request.method == 'POST':
-        venue_name = request.POST.get('venue_name')
+        venue_name = request.POST.get('name')
         capacity = request.POST.get('capacity')
         address = request.POST.get('address')
         city = request.POST.get('city')
-        seating_type = request.POST.get('seating_type', 'free')
+        has_reserved = request.POST.get('has_reserved_seating') == 'on'
+        seating_type = 'reserved' if has_reserved else 'free'
         
         if venue_name and capacity and address and city:
-            execute_query(
-                "INSERT INTO VENUE (venue_name, capacity, address, city, seating_type) VALUES (%s, %s, %s, %s, %s);",
-                [venue_name, int(capacity), address, city, seating_type]
-            )
-            messages.success(request, 'Venue berhasil ditambahkan.')
+            try:
+                execute_query(
+                    "INSERT INTO VENUE (venue_id, venue_name, capacity, address, city, seating_type) VALUES (%s, %s, %s, %s, %s, %s);",
+                    [str(uuid.uuid4()), venue_name, int(capacity), address, city, seating_type]
+                )
+                messages.success(request, 'Venue berhasil ditambahkan.')
+            except Exception as e:
+                messages.error(request, f'Venue gagal ditambahkan: {e}')
         else:
             messages.error(request, 'Venue gagal ditambahkan. Pastikan semua data sudah benar.')
     return redirect('venue_list')
@@ -104,18 +112,22 @@ def venue_update(request, venue_id):
         return redirect('venue_list')
 
     if request.method == 'POST':
-        venue_name = request.POST.get('venue_name')
+        venue_name = request.POST.get('name')
         capacity = request.POST.get('capacity')
         address = request.POST.get('address')
         city = request.POST.get('city')
-        seating_type = request.POST.get('seating_type', 'free')
+        has_reserved = request.POST.get('has_reserved_seating') == 'on'
+        seating_type = 'reserved' if has_reserved else 'free'
         
         if venue_name and capacity and address and city:
-            execute_query(
-                "UPDATE VENUE SET venue_name=%s, capacity=%s, address=%s, city=%s, seating_type=%s WHERE venue_id=%s;",
-                [venue_name, int(capacity), address, city, seating_type, venue_id]
-            )
-            messages.success(request, 'Venue berhasil diperbarui.')
+            try:
+                execute_query(
+                    "UPDATE VENUE SET venue_name=%s, capacity=%s, address=%s, city=%s, seating_type=%s WHERE venue_id=%s;",
+                    [venue_name, int(capacity), address, city, seating_type, venue_id]
+                )
+                messages.success(request, 'Venue berhasil diperbarui.')
+            except Exception as e:
+                messages.error(request, f'Venue gagal diperbarui: {e}')
         else:
             messages.error(request, 'Venue gagal diperbarui. Pastikan semua data sudah benar.')
     return redirect('venue_list')

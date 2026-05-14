@@ -18,7 +18,7 @@
     {% if not default_category %}
     <div class="bg-white rounded-xl border border-gray-100 p-12 text-center shadow-sm">
         <p class="text-sm text-gray-500">Tiket untuk event ini belum tersedia.</p>
-        <a href="{% url 'ticketing:event_list' %}" class="inline-flex mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Kembali</a>
+        <a href="{% url 'events:event_list' %}" class="inline-flex mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold">Kembali</a>
     </div>
     {% else %}
     <form method="post" id="checkoutForm" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -30,12 +30,12 @@
                 <div class="flex items-center gap-4">
                     <div class="w-16 h-16 rounded-xl bg-blue-600 text-white flex items-center justify-center text-3xl">♪</div>
                     <div>
-                        <h2 class="text-lg font-bold text-gray-950">{{ event.title }}</h2>
+                        <h2 class="text-lg font-bold text-gray-950">{{ event.event_title }}</h2>
                         <div class="flex flex-wrap items-center gap-2 mt-2">
                             <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[11px] font-bold">{{ event.category }}</span>
                             <span class="px-2 py-0.5 rounded bg-gray-50 text-gray-600 text-[11px] font-bold">{{ event.status }}</span>
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">{{ event.start_date|date:"Y-m-d H:i" }} | {{ event.venue.name }}</p>
+                        <p class="text-sm text-gray-500 mt-2">{{ event.event_datetime|date:"Y-m-d H:i" }} | {{ event.venue.name }}</p>
                     </div>
                 </div>
             </section>
@@ -106,7 +106,7 @@
                 </div>
                 <datalist id="promoOptions">
                     {% for promo in active_promos %}
-                    <option value="{{ promo.code }}"></option>
+                    <option value="{{ promo.promo_code }}"></option>
                     {% endfor %}
                 </datalist>
                 <p id="promoHint" class="text-xs text-gray-400 mt-3">Kode promo akan divalidasi saat checkout.</p>
