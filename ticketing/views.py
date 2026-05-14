@@ -182,6 +182,24 @@ def show_ticket_categories(request):
     
     categories = fetch_all(base_query, params)
     
+    # Ambil sisa kuota dari stored procedure/function Trigger 3
+    for c in categories:
+        quota_data = fetch_one(
+            """
+            SELECT sold_ticket, remaining_quota
+            FROM TIKTAKTUK.get_ticket_category_remaining_quota(%s)
+            WHERE category_id = %s
+            """,
+            [c['tevent_id'], c['category_id']]
+        )
+
+        if quota_data:
+            c['sold_ticket'] = quota_data['sold_ticket']
+            c['remaining_quota'] = quota_data['remaining_quota']
+        else:
+            c['sold_ticket'] = 0
+            c['remaining_quota'] = c['quota']
+    
     total_categories = len(categories)
     total_quota = sum(c['quota'] for c in categories)
     max_price = max((c['price'] for c in categories), default=0)

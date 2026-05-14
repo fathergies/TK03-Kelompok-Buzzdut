@@ -95,7 +95,9 @@
                             <span class="text-sm font-medium text-blue-600">Rp {{ cat.price|floatformat:0 }}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm text-gray-600">{{ cat.quota }} tiket</span>
+                            <span class="text-sm text-gray-600">
+                                {{ cat.remaining_quota }} / {{ cat.quota }} tiket tersisa
+                            </span>
                         </td>
                         {% if can_manage or user.role == 'CUSTOMER' %}
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

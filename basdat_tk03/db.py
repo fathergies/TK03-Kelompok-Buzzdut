@@ -4,6 +4,7 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from pathlib import Path
 
+
 # Load environment variables explicitly from project root
 BASE_DIR = Path(__file__).resolve().parent.parent
 env_path = BASE_DIR / '.env'
