@@ -173,8 +173,7 @@
                                 data-event="{{ category.tevent_id }}"
                                 data-venue="{{ category.tevent.venue_id }}"
                                 data-used="{{ category.used_count }}"
-                                data-quota="{{ category.quota }}"
-                                {% if row.is_full %}disabled{% endif %}>
+                                data-quota="{{ category.quota }}">
                             {{ category.category_name }} - Rp {{ category.price|floatformat:0 }} ({{ category.used_count }}/{{ category.quota }}){% if row.is_full %} - Penuh{% endif %}
                         </option>
                         {% endwith %}
