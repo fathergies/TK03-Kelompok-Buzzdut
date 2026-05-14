@@ -42,7 +42,7 @@
             <select name="status" class="w-full sm:w-44 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="this.form.submit()">
                 <option value="">Semua Status</option>
                 {% for value,label in status_choices %}
-                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{% if value == 'ACTIVE' %}Valid{% else %}{{ label }}{% endif %}</option>
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -62,9 +62,9 @@
                             </div>
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2 mb-1">
-                                    {% if ticket.status == 'ACTIVE' %}
+                                    {% if ticket.status == 'Valid' %}
                                         <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700">VALID</span>
-                                    {% elif ticket.status == 'USED' %}
+                                    {% elif ticket.status == 'Terpakai' %}
                                         <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700">TERPAKAI</span>
                                     {% else %}
                                         <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700">DIBATALKAN</span>
@@ -194,7 +194,7 @@
                 <label class="block text-sm font-bold text-gray-500 uppercase mb-2">Kode Tiket</label>
                 <input name="ticket_code" readonly placeholder="Auto-generate saat dibuat" class="w-full px-4 py-3 border border-gray-100 bg-gray-50 rounded-2xl text-sm font-mono text-gray-500">
             </div>
-            <input type="hidden" name="status" value="ACTIVE">
+            <input type="hidden" name="status" value="Valid">
             <div class="grid grid-cols-2 gap-3 pt-2">
                 <button type="button" onclick="closeModal('createTicketModal')" class="px-4 py-3 border border-gray-200 rounded-2xl text-sm font-bold">Batal</button>
                 <button type="submit" class="px-4 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold">Buat Tiket</button>
@@ -225,7 +225,7 @@
                 <label class="block text-sm font-bold text-gray-500 uppercase mb-2">Status</label>
                 <select id="editTicketStatus" name="status" class="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
                     {% for value,label in status_choices %}
-                        <option value="{{ value }}">{% if value == 'ACTIVE' %}Valid{% else %}{{ label }}{% endif %}</option>
+                        <option value="{{ value }}">{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>

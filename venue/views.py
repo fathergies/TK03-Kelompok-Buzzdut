@@ -1,15 +1,12 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q, Sum
+from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from ticketing.models import Venue
-from .forms import VenueForm
-
+from basdat_tk03.auth import login_required
+from basdat_tk03.db import fetch_all, fetch_one, execute_query
+import uuid
 
 def get_user_role(request):
     if request.user.is_authenticated and hasattr(request.user, 'role') and request.user.role:
         return str(request.user.role)
-
     return request.session.get('role', 'CUSTOMER')
 
 
@@ -20,32 +17,45 @@ def is_admin_or_organizer(request):
 
 @login_required
 def venue_list(request):
-    all_venues = Venue.objects.all().order_by('name')
-    venues = all_venues
-
     query = request.GET.get('q', '').strip()
     selected_city = request.GET.get('city', '').strip()
     selected_seating = request.GET.get('seating', '').strip()
 
+    sql_query = "SELECT * FROM VENUE WHERE 1=1"
+    params = []
+
     if query:
-        venues = venues.filter(
-            Q(name__icontains=query) |
-            Q(address__icontains=query)
-        )
-
+        sql_query += " AND (venue_name ILIKE %s OR address ILIKE %s)"
+        params.extend([f"%{query}%", f"%{query}%"])
+    
     if selected_city:
-        venues = venues.filter(city__iexact=selected_city)
-
+        sql_query += " AND city ILIKE %s"
+        params.append(selected_city)
+        
     if selected_seating == 'reserved':
-        venues = venues.filter(has_reserved_seating=True)
+        sql_query += " AND seating_type = 'reserved'"
     elif selected_seating == 'free':
-        venues = venues.filter(has_reserved_seating=False)
+        sql_query += " AND seating_type = 'free'"
+        
+    sql_query += " ORDER BY venue_name ASC;"
+    
+    venues = fetch_all(sql_query, params)
+    for v in venues:
+        v['id'] = v['venue_id']
+        v['name'] = v['venue_name']
+        v['has_reserved_seating'] = (v['seating_type'] == 'reserved')
 
-    cities = Venue.objects.values_list('city', flat=True).distinct().order_by('city')
+    cities_result = fetch_all("SELECT DISTINCT city FROM VENUE ORDER BY city ASC;")
+    cities = [row['city'] for row in cities_result]
 
-    total_venues = all_venues.count()
-    reserved_count = all_venues.filter(has_reserved_seating=True).count()
-    total_capacity = all_venues.aggregate(total=Sum('capacity'))['total'] or 0
+    total_venues_res = fetch_one("SELECT COUNT(*) as count FROM VENUE;")
+    total_venues = total_venues_res['count'] if total_venues_res else 0
+
+    reserved_count_res = fetch_one("SELECT COUNT(*) as count FROM VENUE WHERE seating_type = 'reserved';")
+    reserved_count = reserved_count_res['count'] if reserved_count_res else 0
+
+    total_capacity_res = fetch_one("SELECT SUM(capacity) as total FROM VENUE;")
+    total_capacity = total_capacity_res['total'] if total_capacity_res and total_capacity_res['total'] else 0
 
     role = get_user_role(request)
     can_manage = is_admin_or_organizer(request)
@@ -74,13 +84,24 @@ def venue_create(request):
         return redirect('venue_list')
 
     if request.method == 'POST':
-        form = VenueForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Venue berhasil ditambahkan.')
+        venue_name = request.POST.get('name')
+        capacity = request.POST.get('capacity')
+        address = request.POST.get('address')
+        city = request.POST.get('city')
+        has_reserved = request.POST.get('has_reserved_seating') == 'on'
+        seating_type = 'reserved' if has_reserved else 'free'
+        
+        if venue_name and capacity and address and city:
+            try:
+                execute_query(
+                    "INSERT INTO VENUE (venue_id, venue_name, capacity, address, city, seating_type) VALUES (%s, %s, %s, %s, %s, %s);",
+                    [str(uuid.uuid4()), venue_name, int(capacity), address, city, seating_type]
+                )
+                messages.success(request, 'Venue berhasil ditambahkan.')
+            except Exception as e:
+                messages.error(request, f'Venue gagal ditambahkan: {e}')
         else:
             messages.error(request, 'Venue gagal ditambahkan. Pastikan semua data sudah benar.')
-
     return redirect('venue_list')
 
 
@@ -90,16 +111,25 @@ def venue_update(request, venue_id):
         messages.error(request, 'Anda tidak memiliki akses untuk mengubah venue.')
         return redirect('venue_list')
 
-    venue = get_object_or_404(Venue, id=venue_id)
-
     if request.method == 'POST':
-        form = VenueForm(request.POST, instance=venue)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Venue berhasil diperbarui.')
+        venue_name = request.POST.get('name')
+        capacity = request.POST.get('capacity')
+        address = request.POST.get('address')
+        city = request.POST.get('city')
+        has_reserved = request.POST.get('has_reserved_seating') == 'on'
+        seating_type = 'reserved' if has_reserved else 'free'
+        
+        if venue_name and capacity and address and city:
+            try:
+                execute_query(
+                    "UPDATE VENUE SET venue_name=%s, capacity=%s, address=%s, city=%s, seating_type=%s WHERE venue_id=%s;",
+                    [venue_name, int(capacity), address, city, seating_type, venue_id]
+                )
+                messages.success(request, 'Venue berhasil diperbarui.')
+            except Exception as e:
+                messages.error(request, f'Venue gagal diperbarui: {e}')
         else:
             messages.error(request, 'Venue gagal diperbarui. Pastikan semua data sudah benar.')
-
     return redirect('venue_list')
 
 
@@ -109,10 +139,7 @@ def venue_delete(request, venue_id):
         messages.error(request, 'Anda tidak memiliki akses untuk menghapus venue.')
         return redirect('venue_list')
 
-    venue = get_object_or_404(Venue, id=venue_id)
-
     if request.method == 'POST':
-        venue.delete()
+        execute_query("DELETE FROM VENUE WHERE venue_id=%s;", [venue_id])
         messages.success(request, 'Venue berhasil dihapus.')
-
     return redirect('venue_list')
