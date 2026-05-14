@@ -34,11 +34,11 @@
     <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
         <h3 class="font-semibold text-gray-900 mb-4">Akses Cepat</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <a href="#" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
+            <a href="{% url 'events:event_create' %}" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
                 <span class="text-2xl mb-2">📅</span>
                 <span class="text-sm font-medium text-gray-700">Buat Event</span>
             </a>
-            <a href="#" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
+            <a href="{% url 'venue_list' %}" class="flex flex-col items-center p-4 rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition">
                 <span class="text-2xl mb-2">🏟️</span>
                 <span class="text-sm font-medium text-gray-700">Kelola Venue</span>
             </a>

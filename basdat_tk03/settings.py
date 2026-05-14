@@ -38,7 +38,7 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    # 'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -47,6 +47,10 @@ INSTALLED_APPS = [
     'ticketing',
     'authentication',
     'core',
+    'orders',
+    'promotions',
+    'venue',
+    'events',
 ]
 
 MIDDLEWARE = [
@@ -54,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'basdat_tk03.auth.RawSQLAuthMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -148,6 +152,5 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'ticketing.CustomUser'
-
+# Removed AUTH_USER_MODEL to prevent ORM dependencies
 LOGIN_URL = 'authentication:login'

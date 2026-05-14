@@ -10,6 +10,8 @@ urlpatterns = [
     path('artist/add/', views.create_artist, name='create_artist'),
     path('artist/<uuid:pk>/edit/', views.edit_artist, name='edit_artist'),
     path('artist/<uuid:pk>/delete/', views.delete_artist, name='delete_artist'),
+    
+
 
     # --- Ticket Category URLs ---
     path('ticket-category/', views.show_ticket_categories, name='show_ticket_categories'),
