@@ -27,6 +27,11 @@
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">TANGGAL & WAKTU (DATE & TIME)</label>
                         <input type="datetime-local" name="start_datetime" value="{{ event.start_date|date:'Y-m-d\TH:i' }}" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">IMAGE URL (OPSIONAL)</label>
+                        <input type="url" name="image_url" value="{{ event.image_url|default:'' }}" placeholder="https://example.com/image.jpg" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    </div>
                     
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-2">VENUE (VENUE_ID)</label>

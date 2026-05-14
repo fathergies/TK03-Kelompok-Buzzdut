@@ -94,6 +94,9 @@ def event_create(request):
         description = request.POST.get('description')
         start_datetime = request.POST.get('start_datetime')
         artists_ids = request.POST.getlist('artists')
+        image_url = request.POST.get('image_url')
+        if image_url: image_url = image_url.strip()
+        else: image_url = None
         
         category_names = request.POST.getlist('category_name[]')
         prices = request.POST.getlist('price[]')
@@ -116,8 +119,8 @@ def event_create(request):
         try:
             # Create Event
             execute_query(
-                "INSERT INTO EVENT (event_id, event_datetime, event_title, description, venue_id, organizer_id) VALUES (%s, %s, %s, %s, %s, %s)",
-                [event_id, start_datetime, title, description, venue_id, organizer_id]
+                "INSERT INTO EVENT (event_id, event_datetime, event_title, description, venue_id, organizer_id, image_url) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                [event_id, start_datetime, title, description, venue_id, organizer_id, image_url]
             )
             
             # Create Event Artists
@@ -163,12 +166,15 @@ def event_update(request, pk):
         description = request.POST.get('description')
         start_datetime = request.POST.get('start_datetime')
         artists_ids = request.POST.getlist('artists')
+        image_url = request.POST.get('image_url')
+        if image_url: image_url = image_url.strip()
+        else: image_url = None
         
         try:
             # Update Event
             execute_query(
-                "UPDATE EVENT SET event_title=%s, event_datetime=%s, description=%s, venue_id=%s WHERE event_id=%s",
-                [title, start_datetime, description, venue_id, pk]
+                "UPDATE EVENT SET event_title=%s, event_datetime=%s, description=%s, venue_id=%s, image_url=%s WHERE event_id=%s",
+                [title, start_datetime, description, venue_id, image_url, pk]
             )
             
             # Update Artists
