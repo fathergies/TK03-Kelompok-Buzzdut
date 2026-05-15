@@ -500,12 +500,11 @@ def delete_seat(request, pk):
         return HttpResponseForbidden("You do not have permission to perform this action.")
 
     if request.method == 'POST':
-        has_rel = fetch_one("SELECT seat_id FROM HAS_RELATIONSHIP WHERE seat_id = %s", [pk])
-        if has_rel:
-            messages.error(request, 'Kursi ini sudah di-assign ke tiket dan tidak dapat dihapus.')
-        else:
+        try:
             execute_query("DELETE FROM SEAT WHERE seat_id = %s", [pk])
             messages.success(request, 'Kursi berhasil dihapus.')
+        except Exception as e:
+            messages.error(request, f'Kursi gagal dihapus: {e}')
             
     return redirect('ticketing:seat_list')
 
@@ -701,9 +700,6 @@ def create_ticket(request):
         try:
             category = fetch_one("SELECT * FROM TICKET_CATEGORY WHERE category_id = %s", [tcategory_id])
             if not category: raise ValueError("Invalid category")
-            
-            used_quota = fetch_one("SELECT COUNT(*) as count FROM TICKET WHERE tcategory_id = %s", [tcategory_id])['count']
-            if used_quota >= category['quota']: raise ValueError(f"Kuota kategori {category['category_name']} sudah penuh.")
             
             if seat_id:
                 occupied = fetch_one("SELECT ticket_id FROM HAS_RELATIONSHIP WHERE seat_id = %s", [seat_id])
