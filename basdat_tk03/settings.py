@@ -30,6 +30,7 @@ PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 ALLOWED_HOSTS = ["*"]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
