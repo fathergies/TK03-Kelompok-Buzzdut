@@ -1,4 +1,4 @@
- CREATE OR REPLACE FUNCTION validate_order_promotion()
+CREATE OR REPLACE FUNCTION validate_order_promotion()
 RETURNS TRIGGER AS $$
 DECLARE
     promo_record RECORD;
@@ -19,7 +19,7 @@ BEGIN
 
     SELECT COUNT(*)
     INTO usage_count
-    FROM ORDER_PROMOTION
+    FROM tiktaktuk.order_promotion
     WHERE promotion_id = NEW.promotion_id;
 
     IF usage_count >= promo_record.usage_limit THEN
@@ -40,7 +40,6 @@ BEGIN
     WHERE o.order_id = NEW.order_id
     LIMIT 1;
 
-    -- validasi tanggal event
     IF event_date < promo_record.start_date
        OR event_date > promo_record.end_date
     THEN
@@ -52,3 +51,9 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER trg_validate_order_promotion
+BEFORE INSERT ON TIKTAKTUK.ORDER_PROMOTION
+FOR EACH ROW
+EXECUTE FUNCTION validate_order_promotion();

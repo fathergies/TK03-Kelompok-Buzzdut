@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from basdat_tk03.auth import login_required
-from basdat_tk03.db import fetch_all, fetch_one, execute_query
+from basdat_tk03.db import fetch_all, fetch_one, execute_query, get_database_error_message
 import uuid
 import psycopg2
 def get_user_role(request):
@@ -99,8 +99,7 @@ def venue_create(request):
                 )
                 messages.success(request, 'Venue berhasil ditambahkan.')
             except psycopg2.DatabaseError as e:
-                error_msg = str(e).split('\n')[0]
-                messages.add_message(request, messages.ERROR, error_msg, extra_tags='trigger_error')
+                messages.error(request, get_database_error_message(e), extra_tags='trigger_error')
             except Exception as e:
                 messages.error(request, f'Venue gagal ditambahkan: {e}')
         else:
@@ -130,8 +129,7 @@ def venue_update(request, venue_id):
                 )
                 messages.success(request, 'Venue berhasil diperbarui.')
             except psycopg2.DatabaseError as e:
-                error_msg = str(e).split('\n')[0]
-                messages.add_message(request, messages.ERROR, error_msg, extra_tags='trigger_error')
+                messages.error(request, get_database_error_message(e), extra_tags='trigger_error')
             except Exception as e:
                 messages.error(request, f'Venue gagal diperbarui: {e}')
         else:
@@ -150,8 +148,7 @@ def venue_delete(request, venue_id):
             execute_query("DELETE FROM VENUE WHERE venue_id=%s;", [venue_id])
             messages.success(request, 'Venue berhasil dihapus.')
         except psycopg2.DatabaseError as e:
-            error_msg = str(e).split('\n')[0]
-            messages.add_message(request, messages.ERROR, error_msg, extra_tags='trigger_error')
+            messages.error(request, get_database_error_message(e), extra_tags='trigger_error')
         except Exception as e:
             messages.error(request, f'Venue gagal dihapus: {e}')
     return redirect('venue_list')

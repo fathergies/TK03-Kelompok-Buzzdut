@@ -60,3 +60,11 @@ def execute_query(query, params=None):
             cur.execute(query, params)
             conn.commit()
             return cur.rowcount
+
+def get_database_error_message(error):
+    """
+    Return the clean PostgreSQL error text, including messages raised by triggers.
+    """
+    diag = getattr(error, "diag", None)
+    message = getattr(diag, "message_primary", None) or str(error)
+    return message.strip().splitlines()[0]

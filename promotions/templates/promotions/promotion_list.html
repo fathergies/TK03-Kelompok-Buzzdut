@@ -1,6 +1,89 @@
 {% extends 'base.html' %}
 {% block title %}Manajemen Promosi — TikTakTuk{% endblock %}
 
+{% block extra_css %}
+<style>
+    .promo-modal-panel {
+        width: min(600px, calc(100vw - 2rem));
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.26);
+    }
+    .promo-modal-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        color: #9ca3af;
+        font-size: 32px;
+        line-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .promo-label {
+        display: block;
+        margin-bottom: 10px;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    .promo-input {
+        width: 100%;
+        height: 48px;
+        border: 2px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 0 16px;
+        color: #111827;
+        font-size: 15px;
+        font-weight: 600;
+        background: #fff;
+        outline: none;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .promo-input:focus {
+        border-color: #93a8f7;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+    .promo-input::placeholder {
+        color: #9ca3af;
+        font-weight: 700;
+    }
+    .promo-select {
+        appearance: auto;
+    }
+    .promo-button {
+        height: 48px;
+        border-radius: 15px;
+        font-size: 16px;
+        font-weight: 800;
+        transition: 0.15s ease;
+    }
+    .promo-button-secondary {
+        border: 2px solid #e5e7eb;
+        background: #fff;
+        color: #111827;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .promo-button-primary {
+        background: #315cf4;
+        color: #fff;
+    }
+    .promo-button-primary:disabled {
+        background: #8ea2f4;
+    }
+    .promo-button-danger {
+        height: 48px;
+        min-width: 100px;
+        border-radius: 10px;
+        background: #dc2626;
+        color: #fff;
+        font-weight: 800;
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.22);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
@@ -10,18 +93,10 @@
             <h1 class="text-2xl font-bold text-gray-900">Manajemen Promosi</h1>
             <p class="text-sm text-gray-500 mt-0.5">Kelola kode promo dan kampanye diskon</p>
         </div>
-<<<<<<< HEAD
-        {% if user.role == 'ADMIN' %}
+        {% if can_manage %}
         <button type="button" onclick="openPromoModal('createPromoModal')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center">
             <span class="mr-2">+</span> Buat Promo
         </button>
-=======
-        {% if can_manage %}
-        <a href="{% url 'promotions:create' %}"
-           class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition">
-            <span class="text-lg leading-none">+</span> Buat Promo
-        </a>
->>>>>>> 61b17254380ad6fb00b6f142da9d26deb3967168
         {% endif %}
     </div>
 
@@ -92,12 +167,18 @@
                             <span class="font-bold text-sm text-gray-900">{{ promo.promo_code }}</span>
                         </div>
                     </td>
-<<<<<<< HEAD
-                    <td class="px-6 py-4 font-bold">{% if promo.discount_type == 'Persentase' %}{{ promo.discount_value|floatformat:0 }}%{% else %}Rp {{ promo.discount_value }}{% endif %}</td>
+                    <td class="px-6 py-4">
+                        {% if promo.discount_type == 'PERCENTAGE' %}
+                        <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700 tracking-wide">Persentase</span>
+                        {% else %}
+                        <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-600 tracking-wide">Nominal</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 font-bold">{% if promo.discount_type == 'PERCENTAGE' %}{{ promo.discount_value|floatformat:0 }}%{% else %}Rp {{ promo.discount_value }}{% endif %}</td>
                     <td class="px-6 py-4 text-gray-500">{{ promo.start_date|date:"Y-m-d" }}</td>
                     <td class="px-6 py-4 text-gray-500">{{ promo.end_date|date:"Y-m-d" }}</td>
                     <td class="px-6 py-4 text-gray-500">{{ promo.used_count|default:0 }} / {{ promo.usage_limit }}</td>
-                    {% if user.role == 'ADMIN' %}
+                    {% if can_manage %}
                     <td class="px-6 py-4">
                         <button type="button"
                                 class="text-gray-400 hover:text-blue-600 mr-2"
@@ -109,58 +190,15 @@
                                 data-start="{{ promo.start_date|date:'Y-m-d' }}"
                                 data-end="{{ promo.end_date|date:'Y-m-d' }}"
                                 data-limit="{{ promo.usage_limit }}">
-                            Edit
+                            Update
                         </button>
                         <button type="button"
                                 class="text-gray-400 hover:text-red-600"
                                 onclick="openDeletePromo(this)"
                                 data-action="{% url 'promotions:delete_promotion' promo.pk %}"
                                 data-code="{{ promo.code|escapejs }}">
-                            Hapus
+                            Delete
                         </button>
-=======
-                    <!-- Tipe -->
-                    <td class="px-6 py-4">
-                        {% if promo.discount_type == 'PERCENTAGE' %}
-                        <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700 tracking-wide">Persentase</span>
-                        {% else %}
-                        <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-600 tracking-wide">Nominal</span>
-                        {% endif %}
-                    </td>
-                    <!-- Nilai Diskon -->
-                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">
-                        {% if promo.discount_type == 'PERCENTAGE' %}
-                            {{ promo.discount_value|floatformat:0 }}%
-                        {% else %}
-                            Rp {{ promo.discount_value|floatformat:0 }}
-                        {% endif %}
-                    </td>
-                    <!-- Mulai -->
-                    <td class="px-6 py-4 text-sm text-gray-500">{{ promo.start_date|date:"Y-m-d" }}</td>
-                    <!-- Berakhir -->
-                    <td class="px-6 py-4 text-sm text-gray-500">{{ promo.end_date|date:"Y-m-d" }}</td>
-                    <!-- Penggunaan -->
-                    <td class="px-6 py-4 text-sm text-gray-600">{{ promo.current_usage }} / {{ promo.usage_limit }}</td>
-                    <!-- Aksi (Admin only) -->
-                    {% if can_manage %}
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
-                            <a href="{% url 'promotions:update' promo.promotion_id %}"
-                               title="Edit"
-                               class="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-200 bg-white text-gray-400 hover:text-blue-600 hover:border-blue-300 transition shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                </svg>
-                            </a>
-                            <a href="{% url 'promotions:delete' promo.promotion_id %}"
-                               title="Hapus"
-                               class="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-200 bg-white text-gray-400 hover:text-red-600 hover:border-red-300 transition shadow-sm">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </a>
-                        </div>
->>>>>>> 61b17254380ad6fb00b6f142da9d26deb3967168
                     </td>
                     {% endif %}
                 </tr>
@@ -179,54 +217,56 @@
     </div>
 </div>
 
-{% if user.role == 'ADMIN' %}
-<div id="createPromoModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-            <h2 class="text-lg font-bold text-gray-900">Buat Promo Baru</h2>
-            <button type="button" onclick="closePromoModal('createPromoModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+{% if can_manage %}
+<div id="createPromoModal" class="hidden fixed inset-0 z-50 bg-black/45 items-center justify-center px-4">
+    <div class="promo-modal-panel p-8">
+        <div class="mb-8 flex items-center justify-between">
+            <h2 class="text-xl font-black text-gray-900">Buat Promo Baru</h2>
+            <button type="button" onclick="closePromoModal('createPromoModal')" class="promo-modal-close hover:text-gray-700">&times;</button>
         </div>
-        <form method="post" action="{% url 'promotions:create_promotion' %}" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form method="post" action="{% url 'promotions:create_promotion' %}" class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
             {% csrf_token %}
             {% include 'promotions/promotion_form_fields.html' with form=form %}
-            <div class="md:col-span-2 flex justify-end gap-3 pt-2">
-                <button type="button" onclick="closePromoModal('createPromoModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-bold">Batal</button>
-                <button class="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Buat</button>
+            <div class="md:col-span-2 grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closePromoModal('createPromoModal')" class="promo-button promo-button-secondary">Batal</button>
+                <button class="promo-button promo-button-primary">Buat</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="editPromoModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-            <h2 class="text-lg font-bold text-gray-900">Edit Promo</h2>
-            <button type="button" onclick="closePromoModal('editPromoModal')" class="text-gray-400 hover:text-gray-600">&times;</button>
+<div id="editPromoModal" class="hidden fixed inset-0 z-50 bg-black/45 items-center justify-center px-4">
+    <div class="promo-modal-panel p-8">
+        <div class="mb-8 flex items-center justify-between">
+            <h2 class="text-xl font-black text-gray-900">Edit Promo</h2>
+            <button type="button" onclick="closePromoModal('editPromoModal')" class="promo-modal-close hover:text-gray-700">&times;</button>
         </div>
-        <form id="editPromoForm" method="post" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form id="editPromoForm" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
             {% csrf_token %}
             {% include 'promotions/promotion_form_fields.html' with form=form prefix='edit_' %}
-            <div class="md:col-span-2 flex justify-end gap-3 pt-2">
-                <button type="button" onclick="closePromoModal('editPromoModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-bold">Batal</button>
-                <button class="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">Simpan</button>
+            <div class="md:col-span-2 grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closePromoModal('editPromoModal')" class="promo-button promo-button-secondary">Batal</button>
+                <button class="promo-button promo-button-primary">Simpan</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="deletePromoModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center px-4">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-lg font-bold text-gray-900">Hapus Promo</h2>
+<div id="deletePromoModal" class="hidden fixed inset-0 z-50 bg-black/45 items-center justify-center px-4">
+    <div class="promo-modal-panel max-w-[600px] p-8">
+        <div class="flex justify-between gap-6">
+            <div>
+                <h2 class="text-xl font-black text-red-600">Hapus Promo</h2>
+                <p class="mt-2 text-base font-medium text-gray-600">Apakah Anda yakin ingin menghapus kode promo ini?</p>
+                <p class="mt-1 text-base font-medium text-gray-500">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <button type="button" onclick="closePromoModal('deletePromoModal')" class="promo-modal-close flex-shrink-0 hover:text-gray-700">&times;</button>
         </div>
-        <div class="p-6">
-            <p class="text-sm text-gray-600">Yakin ingin menghapus promo <span id="deletePromoCode" class="font-bold text-gray-900"></span>?</p>
-            <form id="deletePromoForm" method="post" class="flex justify-end gap-3 mt-6">
-                {% csrf_token %}
-                <button type="button" onclick="closePromoModal('deletePromoModal')" class="px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-bold">Batal</button>
-                <button class="px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Hapus</button>
-            </form>
-        </div>
+        <form id="deletePromoForm" method="post" class="mt-12 flex justify-end gap-3">
+            {% csrf_token %}
+            <button type="button" onclick="closePromoModal('deletePromoModal')" class="h-12 min-w-[92px] rounded-[10px] border-2 border-gray-200 bg-white px-6 font-extrabold text-gray-900 shadow-sm">Batal</button>
+            <button class="promo-button-danger">Hapus</button>
+        </form>
     </div>
 </div>
 {% endif %}
@@ -255,8 +295,12 @@
     }
     function openDeletePromo(button) {
         document.getElementById('deletePromoForm').action = button.dataset.action;
-        document.getElementById('deletePromoCode').textContent = button.dataset.code;
         openPromoModal('deletePromoModal');
     }
+    document.querySelectorAll('input[name="code"]').forEach(input => {
+        input.addEventListener('input', () => {
+            input.value = input.value.toUpperCase();
+        });
+    });
 </script>
 {% endblock %}

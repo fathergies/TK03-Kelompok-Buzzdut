@@ -50,19 +50,11 @@
                         {# ===== CUSTOMER NAV ===== #}
                         {% if user.role == 'CUSTOMER' %}
                             <a href="{% url 'core:dashboard' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Dashboard</a>
-<<<<<<< HEAD
                             <a href="{% url 'ticketing:ticket_list' %}" class="nav-link px-3 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Tiket Saya</a>
                             <a href="{% url 'orders:order_list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Pesanan</a>
                             <a href="{% url 'events:event_list' %}" class="nav-link px-3 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Cari Event</a>
                             <a href="{% url 'promotions:promotion_list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Promosi</a>
                             <a href="{% url 'venue_list' %}" class="nav-link px-3 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Venue</a>
-=======
-                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Tiket Saya</a>
-                            <a href="{% url 'orders:list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Pesanan</a>
-                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Cari Event</a>
-                            <a href="{% url 'promotions:list' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Promosi</a>
-                            <a href="#" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Venue</a>
->>>>>>> 61b17254380ad6fb00b6f142da9d26deb3967168
                             <a href="{% url 'ticketing:show_artists' %}" class="nav-link px-2 py-2 rounded-md text-[13px] font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition">Artis</a>
                         {# ===== ORGANIZER NAV ===== #}
                         {% elif user.role == 'ORGANIZER' %}
@@ -119,24 +111,14 @@
         <!-- Mobile Menu -->
         <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-700 max-h-[80vh] overflow-y-auto">
             <div class="px-2 pt-2 pb-3 space-y-1">
-<<<<<<< HEAD
-                {% if user.is_authenticated and user.role == 'CUSTOMER' %}
-                    <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
-                    <a href="{% url 'ticketing:ticket_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Tiket Saya</a>
-                    <a href="{% url 'orders:order_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
-                    <a href="{% url 'events:event_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
-                    <a href="{% url 'promotions:promotion_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Promosi</a>
-                    <a href="{% url 'venue_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Venue</a>
-                    <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Artis</a>
-=======
                 {% if user.is_authenticated %}
                     {% if user.role == 'CUSTOMER' %}
                         <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
-                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Tiket Saya</a>
-                        <a href="{% url 'orders:list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
-                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
-                        <a href="{% url 'promotions:list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Promosi</a>
-                        <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Venue</a>
+                        <a href="{% url 'ticketing:ticket_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Tiket Saya</a>
+                        <a href="{% url 'orders:order_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Pesanan</a>
+                        <a href="{% url 'events:event_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Cari Event</a>
+                        <a href="{% url 'promotions:promotion_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Promosi</a>
+                        <a href="{% url 'venue_list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Venue</a>
                         <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Artis</a>
                     {% elif user.role == 'ORGANIZER' %}
                         <a href="{% url 'core:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Dashboard</a>
@@ -152,7 +134,6 @@
                         <a href="{% url 'ticketing:show_ticket_categories' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Kategori Tiket</a>
                         <a href="{% url 'ticketing:show_artists' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700">Artis</a>
                     {% endif %}
->>>>>>> 61b17254380ad6fb00b6f142da9d26deb3967168
                 {% endif %}
             </div>
             <div class="border-t border-gray-700 px-4 py-3">
@@ -225,44 +206,29 @@
     </div>
     {% endif %}
 
-    <!-- Flash Messages and Trigger Modals -->
+    <!-- Flash Message Toasts -->
     {% if messages %}
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 relative z-40">
+    <div id="toast-container" class="fixed right-4 top-20 z-50 flex w-[calc(100%-2rem)] max-w-sm flex-col gap-3 sm:right-6">
         {% for message in messages %}
-            {% if 'trigger_error' not in message.tags %}
-            <div class="mb-3 px-4 py-3 rounded-lg text-sm font-medium
-                {% if 'success' in message.tags %} bg-green-100 text-green-800 border border-green-200
-                {% elif 'error' in message.tags %} bg-red-100 text-red-800 border border-red-200
-                {% elif 'warning' in message.tags %} bg-amber-100 text-amber-800 border border-amber-200
-                {% else %} bg-blue-100 text-blue-800 border border-blue-200
-                {% endif %}" role="alert">{{ message }}</div>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    <!-- Trigger Error Modals -->
-    {% for message in messages %}
-        {% if 'trigger_error' in message.tags %}
-        <div id="trigger-error-modal-{{ forloop.counter }}" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity">
-            <div class="bg-white rounded-lg shadow-xl overflow-hidden max-w-lg w-full transform transition-all p-6">
-                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
-                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                </div>
-                <div class="mt-3 text-center sm:mt-5">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Database Trigger Error</h3>
-                    <div class="mt-2">
-                        <p class="text-sm text-gray-500 font-mono text-left bg-gray-50 p-3 rounded border">{{ message }}</p>
-                    </div>
-                </div>
-                <div class="mt-5 sm:mt-6">
-                    <button type="button" onclick="document.getElementById('trigger-error-modal-{{ forloop.counter }}').style.display='none'" class="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">
-                        Tutup
-                    </button>
-                </div>
+        <div class="toast-message rounded-lg border bg-white px-4 py-3 text-sm shadow-lg transition duration-300
+            {% if 'success' in message.tags %} border-green-200 text-green-800
+            {% elif 'error' in message.tags %} border-red-200 text-red-800
+            {% elif 'warning' in message.tags %} border-amber-200 text-amber-800
+            {% else %} border-blue-200 text-blue-800
+            {% endif %}" role="alert">
+            <div class="flex items-start gap-3">
+                <div class="mt-0.5 h-2.5 w-2.5 flex-shrink-0 rounded-full
+                    {% if 'success' in message.tags %} bg-green-500
+                    {% elif 'error' in message.tags %} bg-red-500
+                    {% elif 'warning' in message.tags %} bg-amber-500
+                    {% else %} bg-blue-500
+                    {% endif %}"></div>
+                <p class="flex-1 font-medium leading-5">{{ message }}</p>
+                <button type="button" class="-mr-1 rounded px-1 text-gray-400 hover:text-gray-700" aria-label="Tutup" onclick="this.closest('.toast-message').remove()">x</button>
             </div>
         </div>
-        {% endif %}
-    {% endfor %}
+        {% endfor %}
+    </div>
     {% endif %}
 
     <!-- Main Content -->
@@ -315,6 +281,13 @@
                 link.classList.remove('text-gray-300');
                 link.classList.add('text-white', 'bg-gray-700');
             }
+        });
+
+        document.querySelectorAll('.toast-message').forEach(toast => {
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-3');
+                setTimeout(() => toast.remove(), 300);
+            }, 5500);
         });
     </script>
     {% block extra_js %}{% endblock %}

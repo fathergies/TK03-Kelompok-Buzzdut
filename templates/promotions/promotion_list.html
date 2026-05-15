@@ -1,136 +1,292 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Manajemen Promosi — TikTakTuk{% endblock %}
 
-{% block title %}Manajemen Promosi{% endblock %}
+{% block extra_css %}
+<style>
+    .promo-modal-panel {
+        width: min(600px, calc(100vw - 2rem));
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.26);
+    }
+    .promo-modal-close {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        color: #9ca3af;
+        font-size: 32px;
+        line-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .promo-label {
+        display: block;
+        margin-bottom: 10px;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    .promo-input {
+        width: 100%;
+        height: 48px;
+        border: 2px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 0 16px;
+        color: #111827;
+        font-size: 15px;
+        font-weight: 600;
+        background: #fff;
+        outline: none;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .promo-input:focus {
+        border-color: #93a8f7;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+    .promo-input::placeholder {
+        color: #9ca3af;
+        font-weight: 700;
+    }
+    .promo-select {
+        appearance: auto;
+    }
+    .promo-button {
+        height: 48px;
+        border-radius: 15px;
+        font-size: 16px;
+        font-weight: 800;
+        transition: 0.15s ease;
+    }
+    .promo-button-secondary {
+        border: 2px solid #e5e7eb;
+        background: #fff;
+        color: #111827;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .promo-button-primary {
+        background: #315cf4;
+        color: #fff;
+    }
+    .promo-button-danger {
+        height: 48px;
+        min-width: 100px;
+        border-radius: 10px;
+        background: #dc2626;
+        color: #fff;
+        font-weight: 800;
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.22);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-
-    <!-- Header -->
-    <div class="flex justify-between items-start mb-6">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="flex justify-between items-start mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Manajemen Promosi</h1>
-            <p class="text-sm text-gray-500 mt-1">
-                Kelola kode promo dan kampanye diskon
-            </p>
+            <h1 class="text-2xl font-bold text-gray-900">Manajemen Promosi</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Kelola kode promo dan kampanye diskon</p>
         </div>
-
-        {% if user.is_authenticated and user.is_staff %}
-        <a href="{% url 'promotions:promotion_create' %}"
-           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow">
-            + Buat Promo
-        </a>
+        {% if can_manage %}
+        <button type="button" onclick="openPromoModal('createPromoModal')" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center">
+            <span class="mr-2">+</span> Buat Promo
+        </button>
         {% endif %}
     </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white p-6 rounded-xl shadow">
-            <p class="text-xs text-gray-400 font-semibold uppercase">Total Promo</p>
-            <p class="text-2xl font-bold mt-2">{{ total_promo }}</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+        <div class="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Total Promo</p>
+            <p class="text-3xl font-bold text-gray-900">{{ stats.total_promo }}</p>
         </div>
-
-        <div class="bg-white p-6 rounded-xl shadow">
-            <p class="text-xs text-gray-400 font-semibold uppercase">Total Penggunaan</p>
-            <p class="text-2xl font-bold mt-2">{{ total_usage }}x</p>
+        <div class="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Total Penggunaan</p>
+            <p class="text-3xl font-bold text-gray-900">{{ stats.total_usage }}<span class="text-2xl">x</span></p>
         </div>
-
-        <div class="bg-white p-6 rounded-xl shadow">
-            <p class="text-xs text-gray-400 font-semibold uppercase">Tipe Persentase</p>
-            <p class="text-2xl font-bold mt-2">{{ total_percentage }}</p>
+        <div class="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tipe Persentase</p>
+            <p class="text-3xl font-bold text-gray-900">{{ stats.total_persentase }}</p>
         </div>
     </div>
 
-    <!-- Filter -->
-    <form method="get" class="flex gap-3 mb-6">
-        <input type="text" name="q"
-               placeholder="Cari kode promo..."
-               value="{{ search_query }}"
-               class="w-80 px-4 py-2 border rounded-lg">
-
-        <select name="discount_type"
-                class="px-4 py-2 border rounded-lg"
-                onchange="this.form.submit()">
-            <option value="">Semua Tipe</option>
-            <option value="percentage" {% if discount_type == "percentage" %}selected{% endif %}>
-                Persentase
-            </option>
-            <option value="nominal" {% if discount_type == "nominal" %}selected{% endif %}>
-                Nominal
-            </option>
+    <form method="GET" class="flex flex-col sm:flex-row gap-3 mb-6">
+        <div class="relative flex-1 max-w-sm">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" name="search" value="{{ search }}" placeholder="Cari kode promo..."
+                   class="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+        </div>
+        <select name="type" onchange="this.form.submit()"
+                class="border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <option value="" {% if not promo_type %}selected{% endif %}>Semua Tipe</option>
+            <option value="PERCENTAGE" {% if promo_type == 'PERCENTAGE' %}selected{% endif %}>Persentase</option>
+            <option value="NOMINAL" {% if promo_type == 'NOMINAL' %}selected{% endif %}>Nominal</option>
         </select>
+        {% if search %}
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">Cari</button>
+        {% endif %}
     </form>
 
-    <!-- Table -->
-    <div class="bg-white rounded-xl shadow overflow-hidden">
-        <table class="w-full">
-            <thead class="bg-gray-50 text-gray-400 text-xs uppercase">
-                <tr>
-                    <th class="px-6 py-4 text-left">Kode Promo</th>
-                    <th class="px-6 py-4 text-left">Tipe</th>
-                    <th class="px-6 py-4 text-left">Nilai Diskon</th>
-                    <th class="px-6 py-4 text-left">Mulai</th>
-                    <th class="px-6 py-4 text-left">Berakhir</th>
-                    <th class="px-6 py-4 text-left">Penggunaan</th>
-
-                    {% if user.is_authenticated and user.is_staff %}
-                    <th class="px-6 py-4"></th>
+    <div class="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="border-b border-gray-100">
+                    <th class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kode Promo</th>
+                    <th class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipe</th>
+                    <th class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nilai Diskon</th>
+                    <th class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mulai</th>
+                    <th class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Berakhir</th>
+                    <th class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Penggunaan</th>
+                    {% if can_manage %}
+                    <th class="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider"></th>
                     {% endif %}
                 </tr>
             </thead>
-
-            <tbody class="text-sm text-gray-700">
-            {% for promo in promotions %}
-                <tr class="border-t">
-                    <td class="px-6 py-4 font-semibold">
-                        🎟 {{ promo.promo_code }}
-                    </td>
-
+            <tbody class="divide-y divide-gray-50">
+                {% for promo in promos %}
+                <tr class="hover:bg-gray-50/60 transition">
                     <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs font-bold rounded
-                            {% if promo.discount_type == 'percentage' %}
-                                bg-purple-100 text-purple-600
-                            {% else %}
-                                bg-orange-100 text-orange-600
-                            {% endif %}">
-                            {{ promo.get_discount_type_display }}
-                        </span>
+                        <div class="flex items-center gap-2.5">
+                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-purple-50 text-purple-500 flex-shrink-0">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+                                </svg>
+                            </span>
+                            <span class="font-bold text-sm text-gray-900">{{ promo.promo_code }}</span>
+                        </div>
                     </td>
-
-                    <td class="px-6 py-4 font-semibold">
-                        {% if promo.discount_type == "percentage" %}
-                            {{ promo.discount_value }}%
+                    <td class="px-6 py-4">
+                        {% if promo.discount_type == 'PERCENTAGE' %}
+                        <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700 tracking-wide">Persentase</span>
                         {% else %}
-                            Rp {{ promo.discount_value }}
+                        <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-600 tracking-wide">Nominal</span>
                         {% endif %}
                     </td>
-
-                    <td class="px-6 py-4">{{ promo.start_date }}</td>
-                    <td class="px-6 py-4">{{ promo.end_date }}</td>
-
-                    <td class="px-6 py-4 font-semibold">
-                        {{ promo.used_count }} / {{ promo.usage_limit }}
-                    </td>
-
-                    {% if user.is_authenticated and user.is_staff %}
-                    <td class="px-6 py-4 space-x-2">
-                        <a href="{% url 'promotions:promotion_update' promo.pk %}"
-                           class="text-yellow-500 font-bold">✎</a>
-
-                        <a href="{% url 'promotions:promotion_delete' promo.pk %}"
-                           class="text-red-500 font-bold">🗑</a>
+                    <td class="px-6 py-4 font-bold">{% if promo.discount_type == 'PERCENTAGE' %}{{ promo.discount_value|floatformat:0 }}%{% else %}Rp {{ promo.discount_value }}{% endif %}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ promo.start_date|date:"Y-m-d" }}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ promo.end_date|date:"Y-m-d" }}</td>
+                    <td class="px-6 py-4 text-gray-500">{{ promo.used_count|default:0 }} / {{ promo.usage_limit }}</td>
+                    {% if can_manage %}
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button type="button"
+                                class="text-gray-400 hover:text-blue-600 mr-2"
+                                onclick="openEditPromo(this)"
+                                data-action="{% url 'promotions:update_promotion' promo.pk %}"
+                                data-code="{{ promo.code|escapejs }}"
+                                data-type="{{ promo.discount_type }}"
+                                data-value="{{ promo.discount_value }}"
+                                data-start="{{ promo.start_date|date:'Y-m-d' }}"
+                                data-end="{{ promo.end_date|date:'Y-m-d' }}"
+                                data-limit="{{ promo.usage_limit }}">
+                            Update
+                        </button>
+                        <button type="button"
+                                class="text-gray-400 hover:text-red-600"
+                                onclick="openDeletePromo(this)"
+                                data-action="{% url 'promotions:delete_promotion' promo.pk %}">
+                            Delete
+                        </button>
                     </td>
                     {% endif %}
                 </tr>
-            {% empty %}
+                {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center py-6 text-gray-400">
-                        Belum ada data promosi
+                    <td colspan="{% if can_manage %}7{% else %}6{% endif %}" class="px-6 py-12 text-center text-gray-400 text-sm">
+                        Tidak ada data promosi ditemukan.
                     </td>
                 </tr>
-            {% endfor %}
+                {% endfor %}
             </tbody>
         </table>
     </div>
-
 </div>
+
+{% if can_manage %}
+<div id="createPromoModal" class="hidden fixed inset-0 z-50 bg-black/45 items-center justify-center px-4">
+    <div class="promo-modal-panel p-8">
+        <div class="mb-8 flex items-center justify-between">
+            <h2 class="text-xl font-black text-gray-900">Buat Promo Baru</h2>
+            <button type="button" onclick="closePromoModal('createPromoModal')" class="promo-modal-close hover:text-gray-700">&times;</button>
+        </div>
+        <form method="post" action="{% url 'promotions:create_promotion' %}" class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+            {% csrf_token %}
+            {% include 'promotions/promotion_form_fields.html' with form=form %}
+            <div class="md:col-span-2 grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closePromoModal('createPromoModal')" class="promo-button promo-button-secondary">Batal</button>
+                <button class="promo-button promo-button-primary">Buat</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="editPromoModal" class="hidden fixed inset-0 z-50 bg-black/45 items-center justify-center px-4">
+    <div class="promo-modal-panel p-8">
+        <div class="mb-8 flex items-center justify-between">
+            <h2 class="text-xl font-black text-gray-900">Edit Promo</h2>
+            <button type="button" onclick="closePromoModal('editPromoModal')" class="promo-modal-close hover:text-gray-700">&times;</button>
+        </div>
+        <form id="editPromoForm" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+            {% csrf_token %}
+            {% include 'promotions/promotion_form_fields.html' with form=form prefix='edit_' %}
+            <div class="md:col-span-2 grid grid-cols-2 gap-3 pt-2">
+                <button type="button" onclick="closePromoModal('editPromoModal')" class="promo-button promo-button-secondary">Batal</button>
+                <button class="promo-button promo-button-primary">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="deletePromoModal" class="hidden fixed inset-0 z-50 bg-black/45 items-center justify-center px-4">
+    <div class="promo-modal-panel max-w-[600px] p-8">
+        <div class="flex justify-between gap-6">
+            <div>
+                <h2 class="text-xl font-black text-red-600">Hapus Promo</h2>
+                <p class="mt-2 text-base font-medium text-gray-600">Apakah Anda yakin ingin menghapus kode promo ini?</p>
+                <p class="mt-1 text-base font-medium text-gray-500">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <button type="button" onclick="closePromoModal('deletePromoModal')" class="promo-modal-close flex-shrink-0 hover:text-gray-700">&times;</button>
+        </div>
+        <form id="deletePromoForm" method="post" class="mt-12 flex justify-end gap-3">
+            {% csrf_token %}
+            <button type="button" onclick="closePromoModal('deletePromoModal')" class="h-12 min-w-[92px] rounded-[10px] border-2 border-gray-200 bg-white px-6 font-extrabold text-gray-900 shadow-sm">Batal</button>
+            <button class="promo-button-danger">Hapus</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function openPromoModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function closePromoModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    function openEditPromo(button) {
+        const form = document.getElementById('editPromoForm');
+        form.action = button.dataset.action;
+        document.getElementById('edit_code').value = button.dataset.code;
+        document.getElementById('edit_discount_type').value = button.dataset.type;
+        document.getElementById('edit_discount_value').value = button.dataset.value;
+        document.getElementById('edit_start_date').value = button.dataset.start;
+        document.getElementById('edit_end_date').value = button.dataset.end;
+        document.getElementById('edit_usage_limit').value = button.dataset.limit;
+        openPromoModal('editPromoModal');
+    }
+    function openDeletePromo(button) {
+        document.getElementById('deletePromoForm').action = button.dataset.action;
+        openPromoModal('deletePromoModal');
+    }
+    document.querySelectorAll('input[name="code"]').forEach(input => {
+        input.addEventListener('input', () => {
+            input.value = input.value.toUpperCase();
+        });
+    });
+</script>
 {% endblock %}

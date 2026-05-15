@@ -3,34 +3,43 @@
 {% block title %}Detail Pesanan{% endblock %}
 
 {% block content %}
-<section class="page-section">
-  <div class="page-header">
-    <h1>Detail Pesanan</h1>
-    <p>Informasi lengkap pesanan Anda.</p>
-  </div>
-
-  <div class="card">
-    <h2>Order #{{ order.order_id }}</h2>
-
-    <div class="detail-row">
-      <span>Tanggal Pesanan</span>
-      <strong>{{ order.order_date|date:"d M Y, H:i" }}</strong>
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6 flex items-start justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Detail Pesanan</h1>
+            <p class="text-gray-500">Informasi lengkap pesanan tiket.</p>
+        </div>
+        <a href="{% url 'orders:order_list' %}" class="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50">Kembali</a>
     </div>
 
-    <div class="detail-row">
-      <span>Status Pembayaran</span>
-      <strong>{{ order.payment_status }}</strong>
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <p class="text-xs font-bold uppercase text-gray-400">Order ID</p>
+            <h2 class="mt-1 font-mono text-lg font-bold text-gray-900">{{ order.order_id }}</h2>
+        </div>
+        <div class="divide-y divide-gray-100">
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+                <span class="text-sm text-gray-500">Tanggal Pesanan</span>
+                <strong class="text-sm text-gray-900">{{ order.order_date|date:"Y-m-d H:i" }}</strong>
+            </div>
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+                <span class="text-sm text-gray-500">Status Pembayaran</span>
+                <strong class="px-2.5 py-1 rounded-md text-[10px] uppercase
+                    {% if order.payment_status == 'Paid' %}bg-green-50 text-green-700
+                    {% elif order.payment_status == 'Pending' %}bg-yellow-50 text-yellow-700
+                    {% else %}bg-red-50 text-red-700{% endif %}">
+                    {{ order.payment_status }}
+                </strong>
+            </div>
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+                <span class="text-sm text-gray-500">Total Pembayaran</span>
+                <strong class="text-lg text-gray-900">Rp {{ order.total_amount|floatformat:0 }}</strong>
+            </div>
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+                <span class="text-sm text-gray-500">Pelanggan</span>
+                <strong class="text-sm text-gray-900">{{ order.customer.full_name }}</strong>
+            </div>
+        </div>
     </div>
-
-    <div class="detail-row">
-      <span>Total Pembayaran</span>
-      <strong>Rp{{ order.total_amount }}</strong>
-    </div>
-
-    <div class="detail-row">
-      <span>Pelanggan</span>
-      <strong>{{ order.customer.full_name }}</strong>
-    </div>
-  </div>
-</section>
+</div>
 {% endblock %}

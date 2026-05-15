@@ -3,9 +3,10 @@ from django.shortcuts import redirect, render
 from django.contrib.auth.hashers import make_password, check_password
 from datetime import datetime, timedelta
 import uuid
+import psycopg2
 
 
-from basdat_tk03.db import fetch_one, execute_query
+from basdat_tk03.db import fetch_one, execute_query, get_database_error_message
 
 def register_select(request):
     if hasattr(request, 'user') and hasattr(request.user, 'is_authenticated') and request.user.is_authenticated:
@@ -28,8 +29,8 @@ def register_view(request, role):
     }
 
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
         raw_password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
         full_name = request.POST.get('full_name')
@@ -40,10 +41,9 @@ def register_view(request, role):
         elif raw_password != confirm_password:
             messages.error(request, 'Password dan konfirmasi password tidak cocok.')
         else:
-            # Cek duplikat username / email
-            existing = fetch_one("SELECT username FROM USER_ACCOUNT WHERE username = %s OR email = %s;", [username, email])
+            existing = fetch_one("SELECT email FROM USER_ACCOUNT WHERE email = %s;", [email])
             if existing:
-                messages.error(request, 'Username atau email sudah digunakan.')
+                messages.error(request, 'Email sudah digunakan.')
             else:
                 hashed_pw = make_password(raw_password)
                 
@@ -55,33 +55,35 @@ def register_view(request, role):
                     messages.error(request, 'Role tidak valid di sistem.')
                     return redirect('authentication:register_select')
                 
-                # INSERT USER_ACCOUNT
                 user_id = str(uuid.uuid4())
-                execute_query(
-                    "INSERT INTO USER_ACCOUNT (user_id, username, email, password) VALUES (%s, %s, %s, %s);",
-                    [user_id, username, email, hashed_pw]
-                )
-                
-                # INSERT ACCOUNT_ROLE
-                execute_query(
-                    "INSERT INTO ACCOUNT_ROLE (role_id, user_id) VALUES (%s, %s);",
-                    [role_record['role_id'], user_id]
-                )
-
-                # INSERT CUSTOMER / ORGANIZER
-                if role_upper == 'CUSTOMER':
+                try:
                     execute_query(
-                        "INSERT INTO CUSTOMER (full_name, phone_number, user_id) VALUES (%s, %s, %s);",
-                        [full_name, phone_number, user_id]
-                    )
-                elif role_upper == 'ORGANIZER':
-                    execute_query(
-                        "INSERT INTO ORGANIZER (organizer_name, contact_email, user_id) VALUES (%s, %s, %s);",
-                        [full_name, email, user_id] # Using full_name as organizer_name
+                        "INSERT INTO USER_ACCOUNT (user_id, username, email, password) VALUES (%s, %s, %s, %s);",
+                        [user_id, username, email, hashed_pw]
                     )
 
-                messages.success(request, f'Akun berhasil dibuat! Silakan login.')
-                return redirect('authentication:login')
+                    execute_query(
+                        "INSERT INTO ACCOUNT_ROLE (role_id, user_id) VALUES (%s, %s);",
+                        [role_record['role_id'], user_id]
+                    )
+
+                    if role_upper == 'CUSTOMER':
+                        execute_query(
+                            "INSERT INTO CUSTOMER (full_name, phone_number, user_id) VALUES (%s, %s, %s);",
+                            [full_name, phone_number, user_id]
+                        )
+                    elif role_upper == 'ORGANIZER':
+                        execute_query(
+                            "INSERT INTO ORGANIZER (organizer_name, contact_email, user_id) VALUES (%s, %s, %s);",
+                            [full_name, email, user_id]
+                        )
+
+                    messages.success(request, f'Akun berhasil dibuat! Silakan login.')
+                    return redirect('authentication:login')
+                except psycopg2.DatabaseError as error:
+                    messages.error(request, get_database_error_message(error), extra_tags='trigger_error')
+                except Exception as error:
+                    messages.error(request, f'Registrasi gagal: {error}')
 
     context = {
         'role': role_upper,
