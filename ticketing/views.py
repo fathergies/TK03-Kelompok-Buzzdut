@@ -152,6 +152,34 @@ def delete_artist(request, pk):
     }
     return render(request, 'ticketing/delete_confirm.html', context)
 
+@login_required
+def assign_artist_to_event(request):
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    events = fetch_all("SELECT event_id, event_title FROM EVENT ORDER BY event_title")
+    artists = fetch_all("SELECT artist_id, name FROM ARTIST ORDER BY name")
+
+    if request.method == 'POST':
+        event_id = request.POST.get('event_id')
+        artist_id = request.POST.get('artist_id')
+        role = request.POST.get('role') or 'Main Performer'
+
+        try:
+            execute_query(
+                "INSERT INTO EVENT_ARTIST (event_id, artist_id, role) VALUES (%s, %s, %s)",
+                [event_id, artist_id, role]
+            )
+            messages.success(request, 'Artist berhasil ditambahkan ke event.')
+        except Exception as e:
+            messages.error(request, str(e))
+
+    return render(request, 'ticketing/assign_artist_to_event.html', {
+        'events': events,
+        'artists': artists,
+        'user_role': request.user.role,
+    })
+
 
 # =============================================================================
 # Ticket Category Views
@@ -181,6 +209,24 @@ def show_ticket_categories(request):
     base_query += " ORDER BY e.event_title ASC, tc.category_name ASC"
     
     categories = fetch_all(base_query, params)
+    
+    # Ambil sisa kuota dari stored procedure/function Trigger 3
+    for c in categories:
+        quota_data = fetch_one(
+            """
+            SELECT sold_ticket, remaining_quota
+            FROM TIKTAKTUK.get_ticket_category_remaining_quota(%s)
+            WHERE category_id = %s
+            """,
+            [c['tevent_id'], c['category_id']]
+        )
+
+        if quota_data:
+            c['sold_ticket'] = quota_data['sold_ticket']
+            c['remaining_quota'] = quota_data['remaining_quota']
+        else:
+            c['sold_ticket'] = 0
+            c['remaining_quota'] = c['quota']
     
     total_categories = len(categories)
     total_quota = sum(c['quota'] for c in categories)

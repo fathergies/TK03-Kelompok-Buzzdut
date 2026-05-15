@@ -10,6 +10,7 @@ urlpatterns = [
     path('artist/add/', views.create_artist, name='create_artist'),
     path('artist/<uuid:pk>/edit/', views.edit_artist, name='edit_artist'),
     path('artist/<uuid:pk>/delete/', views.delete_artist, name='delete_artist'),
+    path('event-artist/add/', views.assign_artist_to_event, name='assign_artist_to_event'),
     
 
 

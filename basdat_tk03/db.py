@@ -6,6 +6,7 @@ from pathlib import Path
 import psycopg2.extras
 psycopg2.extras.register_uuid()
 
+
 # Load environment variables explicitly from project root
 BASE_DIR = Path(__file__).resolve().parent.parent
 env_path = BASE_DIR / '.env'
