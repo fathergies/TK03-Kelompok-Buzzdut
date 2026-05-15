@@ -3,7 +3,7 @@ from django.shortcuts import redirect, render
 from django.contrib.auth.hashers import make_password, check_password
 from datetime import datetime, timedelta
 import uuid
-import psycopg2
+
 
 from basdat_tk03.db import fetch_one, execute_query
 
@@ -40,19 +40,23 @@ def register_view(request, role):
         elif raw_password != confirm_password:
             messages.error(request, 'Password dan konfirmasi password tidak cocok.')
         else:
-            hashed_pw = make_password(raw_password)
-            
-            db_role_name = 'administrator' if role_upper == 'ADMIN' else role_upper
-            
-            # Retrieve role_id
-            role_record = fetch_one("SELECT role_id FROM ROLE WHERE role_name ILIKE %s;", [db_role_name])
-            if not role_record:
-                messages.error(request, 'Role tidak valid di sistem.')
-                return redirect('authentication:register_select')
-            
-            # INSERT USER_ACCOUNT
-            user_id = str(uuid.uuid4())
-            try:
+            # Cek duplikat username / email
+            existing = fetch_one("SELECT username FROM USER_ACCOUNT WHERE username = %s OR email = %s;", [username, email])
+            if existing:
+                messages.error(request, 'Username atau email sudah digunakan.')
+            else:
+                hashed_pw = make_password(raw_password)
+                
+                db_role_name = 'administrator' if role_upper == 'ADMIN' else role_upper
+                
+                # Retrieve role_id
+                role_record = fetch_one("SELECT role_id FROM ROLE WHERE role_name ILIKE %s;", [db_role_name])
+                if not role_record:
+                    messages.error(request, 'Role tidak valid di sistem.')
+                    return redirect('authentication:register_select')
+                
+                # INSERT USER_ACCOUNT
+                user_id = str(uuid.uuid4())
                 execute_query(
                     "INSERT INTO USER_ACCOUNT (user_id, username, email, password) VALUES (%s, %s, %s, %s);",
                     [user_id, username, email, hashed_pw]
@@ -78,11 +82,6 @@ def register_view(request, role):
 
                 messages.success(request, f'Akun berhasil dibuat! Silakan login.')
                 return redirect('authentication:login')
-            except psycopg2.DatabaseError as e:
-                error_msg = str(e).split('\n')[0]
-                messages.add_message(request, messages.ERROR, error_msg, extra_tags='trigger_error')
-            except Exception as e:
-                messages.error(request, f'Terjadi kesalahan: {e}')
 
     context = {
         'role': role_upper,
