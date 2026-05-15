@@ -320,7 +320,12 @@ def delete_ticket_category(request, pk):
     if not _is_admin_or_organizer(request.user):
         return HttpResponseForbidden("You do not have permission to perform this action.")
 
-    category = fetch_one("SELECT * FROM TICKET_CATEGORY WHERE category_id = %s", [pk])
+    category = fetch_one("""
+        SELECT tc.*, e.event_title as tevent_title
+        FROM TICKET_CATEGORY tc
+        JOIN EVENT e ON tc.tevent_id = e.event_id
+        WHERE tc.category_id = %s
+    """, [pk])
     if not category:
         return redirect('ticketing:show_ticket_categories')
 
@@ -332,6 +337,11 @@ def delete_ticket_category(request, pk):
             messages.error(request, f'Error: {e}')
         return redirect('ticketing:show_ticket_categories')
 
+    class MockEvent: pass
+    event = MockEvent()
+    event.title = category['tevent_title']
+    category['tevent'] = event
+    category['id'] = category['category_id']
     category['pk'] = category['category_id']
     category['category_name'] = category['category_name']
     
