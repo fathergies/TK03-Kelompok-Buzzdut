@@ -3,7 +3,7 @@ from django.contrib import messages
 from basdat_tk03.auth import login_required
 from basdat_tk03.db import fetch_all, fetch_one, execute_query
 import uuid
-
+import psycopg2
 def get_user_role(request):
     if request.user.is_authenticated and hasattr(request.user, 'role') and request.user.role:
         return str(request.user.role)
@@ -98,6 +98,9 @@ def venue_create(request):
                     [str(uuid.uuid4()), venue_name, int(capacity), address, city, seating_type]
                 )
                 messages.success(request, 'Venue berhasil ditambahkan.')
+            except psycopg2.DatabaseError as e:
+                error_msg = str(e).split('\n')[0]
+                messages.add_message(request, messages.ERROR, error_msg, extra_tags='trigger_error')
             except Exception as e:
                 messages.error(request, f'Venue gagal ditambahkan: {e}')
         else:
@@ -126,6 +129,9 @@ def venue_update(request, venue_id):
                     [venue_name, int(capacity), address, city, seating_type, venue_id]
                 )
                 messages.success(request, 'Venue berhasil diperbarui.')
+            except psycopg2.DatabaseError as e:
+                error_msg = str(e).split('\n')[0]
+                messages.add_message(request, messages.ERROR, error_msg, extra_tags='trigger_error')
             except Exception as e:
                 messages.error(request, f'Venue gagal diperbarui: {e}')
         else:
@@ -140,6 +146,12 @@ def venue_delete(request, venue_id):
         return redirect('venue_list')
 
     if request.method == 'POST':
-        execute_query("DELETE FROM VENUE WHERE venue_id=%s;", [venue_id])
-        messages.success(request, 'Venue berhasil dihapus.')
+        try:
+            execute_query("DELETE FROM VENUE WHERE venue_id=%s;", [venue_id])
+            messages.success(request, 'Venue berhasil dihapus.')
+        except psycopg2.DatabaseError as e:
+            error_msg = str(e).split('\n')[0]
+            messages.add_message(request, messages.ERROR, error_msg, extra_tags='trigger_error')
+        except Exception as e:
+            messages.error(request, f'Venue gagal dihapus: {e}')
     return redirect('venue_list')
