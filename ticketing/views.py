@@ -152,6 +152,34 @@ def delete_artist(request, pk):
     }
     return render(request, 'ticketing/delete_confirm.html', context)
 
+@login_required
+def assign_artist_to_event(request):
+    if not _is_admin_or_organizer(request.user):
+        return HttpResponseForbidden("You do not have permission to perform this action.")
+
+    events = fetch_all("SELECT event_id, event_title FROM EVENT ORDER BY event_title")
+    artists = fetch_all("SELECT artist_id, name FROM ARTIST ORDER BY name")
+
+    if request.method == 'POST':
+        event_id = request.POST.get('event_id')
+        artist_id = request.POST.get('artist_id')
+        role = request.POST.get('role') or 'Main Performer'
+
+        try:
+            execute_query(
+                "INSERT INTO EVENT_ARTIST (event_id, artist_id, role) VALUES (%s, %s, %s)",
+                [event_id, artist_id, role]
+            )
+            messages.success(request, 'Artist berhasil ditambahkan ke event.')
+        except Exception as e:
+            messages.error(request, str(e))
+
+    return render(request, 'ticketing/assign_artist_to_event.html', {
+        'events': events,
+        'artists': artists,
+        'user_role': request.user.role,
+    })
+
 
 # =============================================================================
 # Ticket Category Views
