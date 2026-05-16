@@ -44,6 +44,8 @@ if not DATABASE_URL and os.getenv("DB_HOST"):
     db_name = os.getenv("DB_NAME", "postgres")
     DATABASE_URL = f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
+DB_SCHEMA = os.getenv("DB_SCHEMA") or os.getenv("SCHEMA") or "tiktaktuk"
+
 ALLOWED_HOSTS = ["*"]
 CSRF_TRUSTED_ORIGINS = [
     "https://*.vercel.app",
@@ -113,16 +115,14 @@ WSGI_APPLICATION = 'basdat_tk03.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 # Database configuration
 
-if PRODUCTION:
+if DATABASE_URL:
     database_config = dj_database_url.parse(
         DATABASE_URL,
         conn_max_age=600,
-        ssl_require=True,
+        ssl_require=os.getenv("DB_SSL_REQUIRE", "true").lower() == "true",
     )
-    schema = os.getenv("SCHEMA")
-    if schema:
-        database_config.setdefault("OPTIONS", {})
-        database_config["OPTIONS"]["options"] = f"-c search_path={schema},public"
+    database_config.setdefault("OPTIONS", {})
+    database_config["OPTIONS"]["options"] = f"-c search_path={DB_SCHEMA},public"
 
     DATABASES = {
         'default': database_config

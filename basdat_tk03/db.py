@@ -7,6 +7,9 @@ from psycopg2.extras import RealDictCursor
 psycopg2.extras.register_uuid()
 
 
+DB_SCHEMA = os.getenv("DB_SCHEMA") or os.getenv("SCHEMA") or "tiktaktuk"
+
+
 def get_db_connection():
     db_config = dj_database_url.parse(
         os.environ["DATABASE_URL"]
@@ -18,7 +21,8 @@ def get_db_connection():
         password=db_config["PASSWORD"],
         host=db_config["HOST"],
         port=db_config["PORT"],
-        sslmode="require"
+        sslmode=os.getenv("DB_SSLMODE", "require"),
+        options=f"-c search_path={DB_SCHEMA},public",
     )
 
 
