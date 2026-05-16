@@ -1,6 +1,8 @@
 # Virtual environment
 env/
+venv/
 .venv/
+.codex_venv/
 
 # Python
 __pycache__/
@@ -8,6 +10,10 @@ __pycache__/
 
 # Database
 db.sqlite3
+db_backup.sqlite3
+
+# Build output
+staticfiles/
 
 # Environment variables
 .env

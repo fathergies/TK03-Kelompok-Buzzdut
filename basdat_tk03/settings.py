@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from urllib.parse import quote
 import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,16 +25,39 @@ load_dotenv()
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-i_x)60)=f-wenyz1%v(r)+)@7n$^_x#tq7@b3_c3(r^ql+d3fl'
+SECRET_KEY = os.getenv(
+    'SECRET_KEY',
+    'django-insecure-i_x)60)=f-wenyz1%v(r)+)@7n$^_x#tq7@b3_c3(r^ql+d3fl'
+)
 
 PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = not PRODUCTION
+
 DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL and os.getenv("DB_HOST"):
+    db_user = quote(os.getenv("DB_USER", ""), safe="")
+    db_password = quote(os.getenv("DB_PASSWORD", ""), safe="")
+    db_host = os.getenv("DB_HOST")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_name = os.getenv("DB_NAME", "postgres")
+    DATABASE_URL = f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.vercel.app",
+    "https://buzzdut2.vercel.app",
+]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 
 # Application definition
@@ -90,10 +114,18 @@ WSGI_APPLICATION = 'basdat_tk03.wsgi.application'
 # Database configuration
 
 if PRODUCTION:
+    database_config = dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True,
+    )
+    schema = os.getenv("SCHEMA")
+    if schema:
+        database_config.setdefault("OPTIONS", {})
+        database_config["OPTIONS"]["options"] = f"-c search_path={schema},public"
+
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL')
-        )
+        'default': database_config
     }
 
 else:
@@ -138,7 +170,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
