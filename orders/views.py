@@ -2,8 +2,8 @@ from decimal import Decimal
 import uuid
 
 from django.contrib import messages
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.utils import timezone
 
 from basdat_tk03.auth import login_required
 from basdat_tk03.db import execute_query, fetch_all, fetch_one
@@ -29,6 +29,47 @@ def _is_order_promotion_trigger_error(error):
         or "trg_validate_order_promotion" in text
         or message.startswith("ERROR: Promotion")
     )
+
+
+def _date_string(value):
+    if hasattr(value, 'date'):
+        value = value.date()
+    return str(value)[:10]
+
+
+def _validate_promotion_for_event(promo_code, event):
+    promo_code = (promo_code or '').strip()
+    if not promo_code:
+        return None, 'Kode promo wajib diisi.'
+
+    promotion = fetch_one("SELECT * FROM PROMOTION WHERE promo_code ILIKE %s", [promo_code])
+    if not promotion:
+        return None, f'ERROR: Promotion dengan ID {promo_code.upper()} tidak ditemukan.'
+
+    usage = fetch_one(
+        "SELECT COUNT(*) as count FROM ORDER_PROMOTION WHERE promotion_id = %s",
+        [promotion['promotion_id']],
+    )['count']
+    if usage >= promotion['usage_limit']:
+        return None, f'ERROR: Promotion {promo_code.upper()} telah mencapai batas maksimum penggunaan.'
+
+    event_day = _date_string(event['event_datetime'])
+    promo_start = _date_string(promotion['start_date'])
+    promo_end = _date_string(promotion['end_date'])
+    if promo_start > event_day or promo_end < event_day:
+        return None, f'ERROR: Promotion {promo_code.upper()} tidak berlaku untuk tanggal event ini.'
+
+    return promotion, None
+
+
+def _calculate_discount(subtotal, promotion):
+    if not promotion:
+        return Decimal('0')
+    if promotion['discount_type'] == 'PERCENTAGE':
+        discount = subtotal * (promotion['discount_value'] / Decimal('100'))
+    else:
+        discount = promotion['discount_value']
+    return min(discount, subtotal)
 
 
 @login_required
@@ -106,6 +147,48 @@ def order_list(request):
 
 
 @login_required
+def apply_promo(request, event_id):
+    if request.user.role != 'CUSTOMER':
+        return JsonResponse({'ok': False, 'message': 'Promo hanya dapat digunakan oleh pelanggan.'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'message': 'Method tidak valid.'}, status=405)
+
+    event = fetch_one("SELECT event_id, event_datetime FROM EVENT WHERE event_id = %s", [str(event_id)])
+    if not event:
+        return JsonResponse({'ok': False, 'message': 'Event tidak ditemukan.'}, status=404)
+
+    category = fetch_one(
+        "SELECT price FROM TICKET_CATEGORY WHERE category_id = %s AND tevent_id = %s",
+        [request.POST.get('category_id'), str(event_id)],
+    )
+    if not category:
+        return JsonResponse({'ok': False, 'message': 'Kategori tidak valid.'}, status=400)
+
+    try:
+        quantity = int(request.POST.get('quantity', '1'))
+    except ValueError:
+        quantity = 1
+    quantity = max(1, min(quantity, 10))
+
+    promotion, error_message = _validate_promotion_for_event(request.POST.get('promo_code'), event)
+    if error_message:
+        return JsonResponse({'ok': False, 'message': error_message}, status=400)
+
+    subtotal = category['price'] * quantity
+    discount = _calculate_discount(subtotal, promotion)
+    total = subtotal - discount
+
+    return JsonResponse({
+        'ok': True,
+        'message': f'Promo {promotion["promo_code"]} berhasil diterapkan.',
+        'promo_code': promotion['promo_code'],
+        'discount': float(discount),
+        'total': float(total),
+    })
+
+
+@login_required
 def checkout(request, event_id):
     event_id = str(event_id)
     if request.user.role != 'CUSTOMER':
@@ -160,13 +243,12 @@ def checkout(request, event_id):
     for seat in seats_raw:
         seat['pk'] = seat['seat_id']
 
-    today = timezone.localdate()
     promos_raw = fetch_all("""
         SELECT *
         FROM PROMOTION
-        WHERE start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE
+        WHERE start_date <= %s AND end_date >= %s
         ORDER BY promo_code
-    """)
+    """, [_date_string(event['event_datetime']), _date_string(event['event_datetime'])])
     active_promos = []
     for promo in promos_raw:
         usage = fetch_one(
@@ -182,7 +264,7 @@ def checkout(request, event_id):
         except ValueError:
             quantity = 1
 
-        promo_code = request.POST.get('promo_code', '').strip()
+        promo_code = request.POST.get('applied_promo_code', '').strip()
         category_id = request.POST.get('category_id')
 
         category = fetch_one(
@@ -237,36 +319,13 @@ def checkout(request, event_id):
                     return redirect('orders:checkout', event_id=event_id)
 
         if promo_code:
-            promotion = fetch_one("SELECT * FROM PROMOTION WHERE promo_code ILIKE %s", [promo_code])
-            if not promotion:
-                messages.error(request, f'ERROR: Promotion dengan ID {promo_code.upper()} tidak ditemukan.')
-                return redirect('orders:checkout', event_id=event_id)
-
-            p_start = str(promotion['start_date'])[:10]
-            p_end = str(promotion['end_date'])[:10]
-            t_day = str(today)[:10]
-
-            if p_start > t_day or p_end < t_day:
-                messages.error(request, f'ERROR: Promotion {promo_code.upper()} tidak berlaku untuk tanggal event ini.')
-                return redirect('orders:checkout', event_id=event_id)
-
-            usage = fetch_one(
-                "SELECT COUNT(*) as count FROM ORDER_PROMOTION WHERE promotion_id = %s",
-                [promotion['promotion_id']],
-            )['count']
-            if usage >= promotion['usage_limit']:
-                messages.error(request, f'ERROR: Promotion {promo_code.upper()} telah mencapai batas maksimum penggunaan.')
+            promotion, error_message = _validate_promotion_for_event(promo_code, event)
+            if error_message:
+                messages.error(request, error_message)
                 return redirect('orders:checkout', event_id=event_id)
 
         subtotal = category['price'] * quantity
-        discount = Decimal('0')
-        if promotion:
-            if promotion['discount_type'] == 'PERCENTAGE':
-                discount = subtotal * (promotion['discount_value'] / Decimal('100'))
-            else:
-                discount = promotion['discount_value']
-            discount = min(discount, subtotal)
-
+        discount = _calculate_discount(subtotal, promotion)
         total_amount = subtotal - discount
         customer = fetch_one("SELECT customer_id FROM CUSTOMER WHERE user_id = %s", [request.user.pk])
         order_id = str(uuid.uuid4())
