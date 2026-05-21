@@ -17,8 +17,14 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 import os
 from dotenv import load_dotenv
-# Load environment variables from .env file
-load_dotenv()
+
+# Load local environment variables explicitly. The project's .env lives beside
+# this settings module, so relying on the process cwd can miss it locally.
+ENV_FILE = Path(__file__).resolve().parent / ".env"
+if ENV_FILE.exists():
+    load_dotenv(ENV_FILE)
+else:
+    load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -45,6 +51,9 @@ if not DATABASE_URL and os.getenv("DB_HOST"):
     DATABASE_URL = f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 DB_SCHEMA = os.getenv("DB_SCHEMA") or os.getenv("SCHEMA") or "tiktaktuk"
+
+if DATABASE_URL:
+    os.environ.setdefault("DATABASE_URL", DATABASE_URL)
 
 ALLOWED_HOSTS = ["*"]
 CSRF_TRUSTED_ORIGINS = [

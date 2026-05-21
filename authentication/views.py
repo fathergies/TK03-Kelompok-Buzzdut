@@ -1,12 +1,16 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator
 from datetime import datetime, timedelta
 import uuid
 import psycopg2
 
 
 from basdat_tk03.db import fetch_one, execute_query, get_database_error_message
+from basdat_tk03.auth import login_required
 
 def register_select(request):
     if hasattr(request, 'user') and hasattr(request.user, 'is_authenticated') and request.user.is_authenticated:
@@ -41,6 +45,15 @@ def register_view(request, role):
         elif raw_password != confirm_password:
             messages.error(request, 'Password dan konfirmasi password tidak cocok.')
         else:
+            try:
+                validate_password(raw_password)
+            except ValidationError as error:
+                messages.error(request, ' '.join(error.messages))
+                return render(request, 'authentication/register_form.html', {
+                    'role': role_upper,
+                    'role_label': role_labels.get(role_upper, role),
+                })
+
             existing = fetch_one("SELECT email FROM USER_ACCOUNT WHERE email = %s;", [email])
             if existing:
                 messages.error(request, 'Email sudah digunakan.')
@@ -135,3 +148,130 @@ def logout_view(request):
         
     messages.info(request, 'Anda telah logout.')
     return response
+
+
+@login_required
+def profile_view(request):
+    if request.user.role not in ('CUSTOMER', 'ORGANIZER'):
+        messages.error(request, 'Halaman profil hanya tersedia untuk pelanggan dan penyelenggara.')
+        return redirect('core:dashboard')
+
+    show_edit_modal = False
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'update_profile':
+            show_edit_modal = True
+            if request.user.role == 'CUSTOMER':
+                full_name = request.POST.get('full_name', '').strip()
+                phone_number = request.POST.get('phone_number', '').strip()
+
+                if not full_name or not phone_number:
+                    messages.error(request, 'Nama lengkap dan nomor telepon wajib diisi.')
+                else:
+                    try:
+                        execute_query(
+                            "UPDATE CUSTOMER SET full_name = %s, phone_number = %s WHERE user_id = %s;",
+                            [full_name, phone_number, request.user.pk]
+                        )
+                        messages.success(request, 'Profil berhasil diperbarui.')
+                        return redirect('authentication:profile')
+                    except psycopg2.DatabaseError as error:
+                        messages.error(request, get_database_error_message(error), extra_tags='trigger_error')
+
+            elif request.user.role == 'ORGANIZER':
+                organizer_name = request.POST.get('organizer_name', '').strip()
+                contact_email = request.POST.get('contact_email', '').strip()
+
+                if not organizer_name or not contact_email:
+                    messages.error(request, 'Nama organizer dan email kontak wajib diisi.')
+                else:
+                    try:
+                        EmailValidator()(contact_email)
+                        execute_query(
+                            "UPDATE ORGANIZER SET organizer_name = %s, contact_email = %s WHERE user_id = %s;",
+                            [organizer_name, contact_email, request.user.pk]
+                        )
+                        messages.success(request, 'Profil berhasil diperbarui.')
+                        return redirect('authentication:profile')
+                    except ValidationError:
+                        messages.error(request, 'Format email kontak tidak valid.')
+                    except psycopg2.DatabaseError as error:
+                        messages.error(request, get_database_error_message(error), extra_tags='trigger_error')
+
+        elif action == 'update_password':
+            old_password = request.POST.get('old_password', '')
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+
+            user_record = fetch_one(
+                "SELECT password FROM USER_ACCOUNT WHERE user_id = %s;",
+                [request.user.pk]
+            )
+
+            if not old_password or not new_password or not confirm_password:
+                messages.error(request, 'Semua field password wajib diisi.')
+            elif not user_record or not check_password(old_password, user_record['password']):
+                messages.error(request, 'Password lama tidak sesuai.')
+            elif new_password != confirm_password:
+                messages.error(request, 'Password baru dan konfirmasi password tidak cocok.')
+            else:
+                try:
+                    validate_password(new_password)
+                    execute_query(
+                        "UPDATE USER_ACCOUNT SET password = %s WHERE user_id = %s;",
+                        [make_password(new_password), request.user.pk]
+                    )
+                    messages.success(request, 'Password berhasil diperbarui.')
+                    return redirect('authentication:profile')
+                except ValidationError as error:
+                    messages.error(request, ' '.join(error.messages))
+                except psycopg2.DatabaseError as error:
+                    messages.error(request, get_database_error_message(error), extra_tags='trigger_error')
+
+    profile = get_profile_data(request.user)
+    if not profile:
+        messages.error(request, 'Data profil tidak ditemukan.')
+        return redirect('core:dashboard')
+
+    return render(request, 'authentication/profile.html', {
+        'profile': profile,
+        'show_edit_modal': show_edit_modal,
+    })
+
+
+def get_profile_data(user):
+    if user.role == 'CUSTOMER':
+        row = fetch_one(
+            """
+            SELECT ua.username, c.full_name, c.phone_number
+            FROM USER_ACCOUNT ua
+            JOIN CUSTOMER c ON ua.user_id = c.user_id
+            WHERE ua.user_id = %s;
+            """,
+            [user.pk]
+        )
+        if row:
+            row['role_label'] = 'Pelanggan'
+            row['role_badge_class'] = 'bg-blue-100 text-blue-700'
+            row['avatar_initial'] = (row['full_name'] or row['username'] or 'P')[:1].upper()
+        return row
+
+    if user.role == 'ORGANIZER':
+        row = fetch_one(
+            """
+            SELECT ua.username, o.organizer_name, o.contact_email
+            FROM USER_ACCOUNT ua
+            JOIN ORGANIZER o ON ua.user_id = o.user_id
+            WHERE ua.user_id = %s;
+            """,
+            [user.pk]
+        )
+        if row:
+            row['role_label'] = 'Penyelenggara'
+            row['role_badge_class'] = 'bg-purple-100 text-purple-700'
+            row['avatar_initial'] = (row['organizer_name'] or row['username'] or 'P')[:1].upper()
+        return row
+
+    return None
