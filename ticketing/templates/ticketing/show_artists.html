@@ -10,12 +10,20 @@
             <h1 class="text-2xl font-bold text-gray-900">Daftar Artis</h1>
             <p class="text-sm text-gray-500 mt-1">Kelola artis yang ada di platform TikTakTuk</p>
         </div>
-        {% if can_manage %}
-            <button onclick="openModal('createModal')"
-                    class="px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition flex items-center space-x-1">
-                <span>+</span><span>Tambah Artis</span>
-            </button>
-        {% endif %}
+        <div class="flex items-center space-x-3">
+            {% if user_role == 'ADMIN' or user_role == 'ORGANIZER' %}
+                <a href="{% url 'ticketing:assign_artist_to_event' %}"
+                   class="px-4 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition flex items-center space-x-1">
+                    <span>Assign Artis ke Event</span>
+                </a>
+            {% endif %}
+            {% if can_manage %}
+                <button onclick="openModal('createModal')"
+                        class="px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition flex items-center space-x-1">
+                    <span>+</span><span>Tambah Artis</span>
+                </button>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Stats Cards -->

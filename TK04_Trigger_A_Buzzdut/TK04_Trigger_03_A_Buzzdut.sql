@@ -1,18 +1,8 @@
 SET search_path TO TIKTAKTUK, public;
 
--- ============================================================
--- TK04 Trigger 3 - TikTakTuk
--- Kelompok: Buzzdut
---
--- 1. Validasi artist_id dan event_id pada EVENT_ARTIST
--- 2. Menampilkan sisa kuota Ticket Category berdasarkan event_id
--- ============================================================
 
-
--- ============================================================
 -- BAGIAN 1
 -- Validasi artist_id dan event_id pada EVENT_ARTIST
--- ============================================================
 
 DROP TRIGGER IF EXISTS trg_event_artist_check ON TIKTAKTUK.EVENT_ARTIST;
 DROP FUNCTION IF EXISTS TIKTAKTUK.validate_event_artist();
@@ -65,10 +55,8 @@ EXECUTE FUNCTION TIKTAKTUK.validate_event_artist();
 
 
 
--- ============================================================
 -- BAGIAN 2
 -- Menampilkan Sisa Kuota Ticket Category Berdasarkan event_id
--- ============================================================
 
 DROP FUNCTION IF EXISTS TIKTAKTUK.get_ticket_category_remaining_quota(UUID);
 

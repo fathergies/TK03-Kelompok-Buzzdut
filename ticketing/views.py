@@ -201,8 +201,26 @@ def show_ticket_categories(request):
         base_query += " AND tc.category_name ILIKE %s"
         params.append(f"%{search_query}%")
 
-    event_filter = request.GET.get('event', '')
+    event_filter = request.GET.get('event', '').strip()
     if event_filter:
+        try:
+            import uuid
+            from django.shortcuts import redirect
+            from django.contrib import messages
+            from basdat_tk03.db import get_database_error_message
+            
+            try:
+                uuid.UUID(event_filter)
+                # Valid UUID format: call DB function to trigger its custom validation exception
+                fetch_all("SELECT * FROM TIKTAKTUK.get_ticket_category_remaining_quota(%s)", [event_filter])
+            except ValueError:
+                # Invalid UUID format: means it definitely doesn't exist. Raise custom error to match requirements.
+                raise Exception(f"ERROR: Event dengan ID {event_filter} tidak ditemukan.")
+        except Exception as e:
+            err_msg = get_database_error_message(e)
+            messages.error(request, err_msg)
+            return redirect('ticketing:show_ticket_categories')
+            
         base_query += " AND tc.tevent_id = %s"
         params.append(event_filter)
 
