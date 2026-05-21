@@ -197,6 +197,15 @@ def delete_promotion(request, pk):
 
     if request.method == 'POST':
         try:
+            promotion = fetch_one(
+                "SELECT promotion_id FROM PROMOTION WHERE promotion_id=%s",
+                [pk],
+            )
+            if not promotion:
+                messages.error(request, 'Promosi tidak ditemukan.')
+                return redirect('promotions:promotion_list')
+
+            execute_query("DELETE FROM ORDER_PROMOTION WHERE promotion_id=%s", [pk])
             execute_query("DELETE FROM PROMOTION WHERE promotion_id=%s", [pk])
             messages.success(request, 'Promosi berhasil dihapus.')
         except Exception as error:
